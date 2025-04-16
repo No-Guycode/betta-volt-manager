@@ -170,6 +170,18 @@ app.post('/api/maintenance/:id/done', async (req, res) => {
   }
 });
 
+// Add new maintenance task
+app.post('/api/maintenance', async (req, res) => {
+  try {
+    const taskData = req.body;
+    const newTask = await controllers.MaintenanceController.create(taskData);
+    res.status(201).json({ success: true, task: newTask });
+  } catch (error) {
+    console.error('Error creating maintenance task:', error);
+    res.status(500).json({ success: false, message: 'Error creating maintenance task' });
+  }
+});
+
 // Get tank logs
 app.get('/api/tank-logs/:fishId', async (req, res) => {
   try {
@@ -202,6 +214,92 @@ app.get('/api/plants', async (req, res) => {
   } catch (error) {
     console.error('Error fetching plants:', error);
     res.status(500).json({ success: false, message: 'Error fetching plants' });
+  }
+});
+
+// Add new plant
+app.post('/api/plants', async (req, res) => {
+  try {
+    const plantData = req.body;
+    const newPlant = await controllers.PlantController.create(plantData);
+    res.status(201).json({ success: true, plant: newPlant });
+  } catch (error) {
+    console.error('Error creating plant:', error);
+    res.status(500).json({ success: false, message: 'Error creating plant' });
+  }
+});
+
+// Get treatments
+app.get('/api/treatments/:fishId', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const treatments = await controllers.TreatmentController.getAllForFish(fishId);
+    res.json(treatments);
+  } catch (error) {
+    console.error('Error fetching treatments:', error);
+    res.status(500).json({ success: false, message: 'Error fetching treatments' });
+  }
+});
+
+// Add new treatment
+app.post('/api/treatments', async (req, res) => {
+  try {
+    const treatmentData = req.body;
+    const newTreatment = await controllers.TreatmentController.create(treatmentData);
+    res.status(201).json({ success: true, treatment: newTreatment });
+  } catch (error) {
+    console.error('Error creating treatment:', error);
+    res.status(500).json({ success: false, message: 'Error creating treatment' });
+  }
+});
+
+// Get photos
+app.get('/api/photos/:fishId', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const photos = await controllers.PhotoController.getAllForFish(fishId);
+    res.json(photos);
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    res.status(500).json({ success: false, message: 'Error fetching photos' });
+  }
+});
+
+// Add new photo
+app.post('/api/photos', async (req, res) => {
+  try {
+    // In a real implementation, this would handle file uploads
+    // For this prototype, we'll just create a record with the metadata
+    const photoData = req.body;
+    const newPhoto = await controllers.PhotoController.create(photoData);
+    res.status(201).json({ success: true, photo: newPhoto });
+  } catch (error) {
+    console.error('Error creating photo:', error);
+    res.status(500).json({ success: false, message: 'Error creating photo' });
+  }
+});
+
+// Get notes
+app.get('/api/notes/:fishId', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const notes = await controllers.NoteController.getAllForFish(fishId);
+    res.json(notes);
+  } catch (error) {
+    console.error('Error fetching notes:', error);
+    res.status(500).json({ success: false, message: 'Error fetching notes' });
+  }
+});
+
+// Add new note
+app.post('/api/notes', async (req, res) => {
+  try {
+    const noteData = req.body;
+    const newNote = await controllers.NoteController.create(noteData);
+    res.status(201).json({ success: true, note: newNote });
+  } catch (error) {
+    console.error('Error creating note:', error);
+    res.status(500).json({ success: false, message: 'Error creating note' });
   }
 });
 
@@ -297,11 +395,47 @@ async function getAppData() {
     // Get notifications
     const notifications = await controllers.NotificationController.getAllForFish(fishId);
     
+    // Get plants
+    let plants = [];
+    try {
+      plants = await controllers.PlantController.getAllForFish(fishId);
+    } catch (error) {
+      console.log('No plants data yet, using empty array');
+    }
+    
+    // Get treatments
+    let treatments = [];
+    try {
+      treatments = await controllers.TreatmentController.getAllForFish(fishId);
+    } catch (error) {
+      console.log('No treatments data yet, using empty array');
+    }
+    
+    // Get photos
+    let photos = [];
+    try {
+      photos = await controllers.PhotoController.getAllForFish(fishId);
+    } catch (error) {
+      console.log('No photos data yet, using empty array');
+    }
+    
+    // Get notes
+    let notes = [];
+    try {
+      notes = await controllers.NoteController.getAllForFish(fishId);
+    } catch (error) {
+      console.log('No notes data yet, using empty array');
+    }
+    
     return {
       fishData,
       maintenanceTasks,
       tankLogs,
-      notifications
+      notifications,
+      plants,
+      treatments,
+      photos,
+      notes
     };
   } catch (error) {
     console.error('Error getting app data:', error);
@@ -321,7 +455,11 @@ async function getAppData() {
       },
       maintenanceTasks: [],
       tankLogs: [],
-      notifications: []
+      notifications: [],
+      plants: [],
+      treatments: [],
+      photos: [],
+      notes: []
     };
   }
 }
@@ -330,6 +468,9 @@ async function getAppData() {
 app.get('/', async (req, res) => {
   // Get data from database
   const appData = await getAppData();
+  
+  // Define profile pictures options for the frontend
+  const clientProfilePictures = JSON.stringify(profilePictures);
   
   res.send(`
     <html>
@@ -755,6 +896,112 @@ app.get('/', async (req, res) => {
             transform: scale(1.1);
             background-color: #ED4FF0;
           }
+          
+          /* Gallery styles */
+          .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+          }
+          
+          .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+          }
+          
+          .gallery-image {
+            height: 200px;
+            overflow: hidden;
+          }
+          
+          .gallery-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+          }
+          
+          .gallery-item:hover .gallery-image img {
+            transform: scale(1.05);
+          }
+          
+          .gallery-info {
+            padding: 15px;
+            background-color: white;
+          }
+          
+          .gallery-title {
+            font-weight: bold;
+            color: #F04F94;
+            margin-bottom: 5px;
+          }
+          
+          .gallery-date {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+          }
+          
+          .gallery-notes {
+            font-style: italic;
+            color: #666;
+            font-size: 14px;
+          }
+          
+          /* Form styles */
+          .form-content {
+            padding: 0 20px 20px 20px;
+          }
+          .form-group {
+            margin-bottom: 15px;
+          }
+          .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+          }
+          .form-group input[type="text"],
+          .form-group input[type="date"],
+          .form-group input[type="number"],
+          .form-group select,
+          .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+          }
+          .form-group textarea {
+            resize: vertical;
+          }
+          .form-group.checkbox {
+            display: flex;
+            align-items: center;
+          }
+          .form-group.checkbox input {
+            margin-right: 10px;
+          }
+          .form-group.checkbox label {
+            margin-bottom: 0;
+          }
+          .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+          }
+          .primary-button {
+            background-color: #F04F94;
+          }
         </style>
       </head>
       <body>
@@ -764,7 +1011,10 @@ app.get('/', async (req, res) => {
             <button class="nav-button" onclick="showSection('home-section')">Home</button>
             <button class="nav-button" onclick="showSection('tanklog-section')">Tank Log</button>
             <button class="nav-button" onclick="showSection('maintenance-section')">Maintenance</button>
-            <button class="nav-button" onclick="showSection('features-section')">Features</button>
+            <button class="nav-button" onclick="showSection('plants-section')">Plants</button>
+            <button class="nav-button" onclick="showSection('treatments-section')">Treatments</button>
+            <button class="nav-button" onclick="showSection('gallery-section')">Gallery</button>
+            <button class="nav-button" onclick="showSection('notes-section')">Notes</button>
             <div class="notification-badge" data-count="1" onclick="toggleNotifications()">
               <button class="nav-button">📋</button>
             </div>
@@ -796,6 +1046,228 @@ app.get('/', async (req, res) => {
               <p>Or upload your own image:</p>
               <input type="file" id="profile-upload" accept="image/*">
               <button onclick="uploadProfilePicture()">Upload</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Maintenance Task Form Modal -->
+        <div id="task-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Maintenance Task</h3>
+              <button class="profile-picker-close" onclick="hideTaskForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="task-name">Task Name:</label>
+                <input type="text" id="task-name" placeholder="e.g., Water Change" required>
+              </div>
+              <div class="form-group">
+                <label for="task-date">Due Date:</label>
+                <input type="date" id="task-date" required>
+              </div>
+              <div class="form-group">
+                <label for="task-recurring">Recurring:</label>
+                <select id="task-recurring">
+                  <option value="none">None</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="task-priority">Priority:</label>
+                <select id="task-priority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="task-notify" checked>
+                <label for="task-notify">Send Notification</label>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideTaskForm()">Cancel</button>
+                <button onclick="saveMaintenanceTask()" class="primary-button">Save Task</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tank Log Form Modal -->
+        <div id="log-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Tank Log</h3>
+              <button class="profile-picker-close" onclick="hideLogForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="log-date">Date:</label>
+                <input type="date" id="log-date" required>
+              </div>
+              <div class="form-group">
+                <label for="log-ammonia">Ammonia (ppm):</label>
+                <input type="number" id="log-ammonia" min="0" step="0.25" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-nitrite">Nitrite (ppm):</label>
+                <input type="number" id="log-nitrite" min="0" step="0.25" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-nitrate">Nitrate (ppm):</label>
+                <input type="number" id="log-nitrate" min="0" step="1" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-ph">pH:</label>
+                <input type="number" id="log-ph" min="0" step="0.1" placeholder="7.0">
+              </div>
+              <div class="form-group">
+                <label for="log-temp">Temperature (°F):</label>
+                <input type="number" id="log-temp" min="0" step="0.1" placeholder="78">
+              </div>
+              <div class="form-group">
+                <label for="log-notes">Notes:</label>
+                <textarea id="log-notes" rows="3" placeholder="Any observations..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideLogForm()">Cancel</button>
+                <button onclick="saveTankLog()" class="primary-button">Save Log</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Plant Form Modal -->
+        <div id="plant-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Plant</h3>
+              <button class="profile-picker-close" onclick="hidePlantForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="plant-name">Plant Name:</label>
+                <input type="text" id="plant-name" placeholder="e.g., Java Fern" required>
+              </div>
+              <div class="form-group">
+                <label for="plant-species">Species:</label>
+                <input type="text" id="plant-species" placeholder="Scientific name (optional)">
+              </div>
+              <div class="form-group">
+                <label for="plant-date">Date Added:</label>
+                <input type="date" id="plant-date" required>
+              </div>
+              <div class="form-group">
+                <label for="plant-care">Care Instructions:</label>
+                <textarea id="plant-care" rows="3" placeholder="Light, fertilizer, trimming needs..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hidePlantForm()">Cancel</button>
+                <button onclick="savePlant()" class="primary-button">Save Plant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Treatment Form Modal -->
+        <div id="treatment-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Treatment</h3>
+              <button class="profile-picker-close" onclick="hideTreatmentForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="treatment-name">Treatment Name:</label>
+                <input type="text" id="treatment-name" placeholder="e.g., Aquarium Salt" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-condition">Condition Treating:</label>
+                <input type="text" id="treatment-condition" placeholder="e.g., Fin Rot" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-start-date">Start Date:</label>
+                <input type="date" id="treatment-start-date" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-end-date">End Date:</label>
+                <input type="date" id="treatment-end-date">
+              </div>
+              <div class="form-group">
+                <label for="treatment-dosage">Dosage:</label>
+                <input type="text" id="treatment-dosage" placeholder="e.g., 1 tsp per gallon">
+              </div>
+              <div class="form-group">
+                <label for="treatment-notes">Notes:</label>
+                <textarea id="treatment-notes" rows="3" placeholder="Treatment observations..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideTreatmentForm()">Cancel</button>
+                <button onclick="saveTreatment()" class="primary-button">Save Treatment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Photo Form Modal -->
+        <div id="photo-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Photo</h3>
+              <button class="profile-picker-close" onclick="hidePhotoForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="photo-title">Photo Title:</label>
+                <input type="text" id="photo-title" placeholder="e.g., Volt's New Colors" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-date">Date Taken:</label>
+                <input type="date" id="photo-date" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-file">Select Photo:</label>
+                <input type="file" id="photo-file" accept="image/*" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-notes">Description:</label>
+                <textarea id="photo-notes" rows="3" placeholder="Photo description..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hidePhotoForm()">Cancel</button>
+                <button onclick="savePhoto()" class="primary-button">Save Photo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Note Form Modal -->
+        <div id="note-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Note</h3>
+              <button class="profile-picker-close" onclick="hideNoteForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="note-title">Title:</label>
+                <input type="text" id="note-title" placeholder="e.g., Behavior Observation" required>
+              </div>
+              <div class="form-group">
+                <label for="note-date">Date:</label>
+                <input type="date" id="note-date" required>
+              </div>
+              <div class="form-group">
+                <label for="note-content">Content:</label>
+                <textarea id="note-content" rows="5" placeholder="Your notes..." required></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideNoteForm()">Cancel</button>
+                <button onclick="saveNote()" class="primary-button">Save Note</button>
+              </div>
             </div>
           </div>
         </div>
@@ -891,6 +1363,8 @@ app.get('/', async (req, res) => {
               <div class="log-notes">${log.notes}</div>
             </div>
           `).join('')}
+          
+          <div class="add-button" onclick="showLogForm()">+</div>
         </section>
         
         <!-- Maintenance Section -->
@@ -907,6 +1381,88 @@ app.get('/', async (req, res) => {
               <div class="task-badge">Due soon</div>
             </div>
           `).join('')}
+          
+          <div class="add-button" onclick="showTaskForm()">+</div>
+        </section>
+        
+        <!-- Plants Section -->
+        <section id="plants-section" class="content-section">
+          <h2>Plant Care</h2>
+          <p>Track aquarium plants and their care requirements.</p>
+          
+          ${appData.plants && appData.plants.length > 0 ? appData.plants.map(plant => `
+            <div class="tank-log-entry">
+              <div class="log-date">${plant.name}</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Species:</span> ${plant.species || 'Not specified'}</div>
+                <div class="param"><span class="param-label">Added:</span> ${new Date(plant.dateAdded).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+              </div>
+              <div class="log-notes">${plant.careInstructions || 'No care instructions provided.'}</div>
+            </div>
+          `).join('') : `<p>No plants added yet. Add your first plant using the + button below.</p>`}
+          
+          <div class="add-button" onclick="showPlantForm()">+</div>
+        </section>
+        
+        <!-- Treatments Section -->
+        <section id="treatments-section" class="content-section">
+          <h2>Treatment Plans</h2>
+          <p>Track medication, supplements, and treatment plans for your fish.</p>
+          
+          ${appData.treatments && appData.treatments.length > 0 ? appData.treatments.map(treatment => `
+            <div class="tank-log-entry">
+              <div class="log-date">${treatment.name} - ${treatment.condition}</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Started:</span> ${new Date(treatment.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                ${treatment.endDate ? `<div class="param"><span class="param-label">Ended:</span> ${new Date(treatment.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>` : ''}
+                ${treatment.dosage ? `<div class="param"><span class="param-label">Dosage:</span> ${treatment.dosage}</div>` : ''}
+              </div>
+              <div class="log-notes">${treatment.notes || 'No notes provided.'}</div>
+            </div>
+          `).join('') : `<p>No treatments added yet. Add your first treatment using the + button below.</p>`}
+          
+          <div class="add-button" onclick="showTreatmentForm()">+</div>
+        </section>
+        
+        <!-- Gallery Section -->
+        <section id="gallery-section" class="content-section">
+          <h2>Photo Gallery</h2>
+          <p>Capture and save memories of your betta fish.</p>
+          
+          ${appData.photos && appData.photos.length > 0 ? `
+            <div class="gallery-grid">
+              ${appData.photos.map(photo => `
+                <div class="gallery-item">
+                  <div class="gallery-image">
+                    <img src="${photo.photoUrl || 'https://via.placeholder.com/300x200?text=Volt'}" alt="${photo.title}">
+                  </div>
+                  <div class="gallery-info">
+                    <div class="gallery-title">${photo.title}</div>
+                    <div class="gallery-date">${new Date(photo.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                    <div class="gallery-notes">${photo.notes || ''}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `<p>No photos added yet. Add your first photo using the + button below.</p>`}
+          
+          <div class="add-button" onclick="showPhotoForm()">+</div>
+        </section>
+        
+        <!-- Notes Section -->
+        <section id="notes-section" class="content-section">
+          <h2>Notes</h2>
+          <p>Record observations and important information about your betta.</p>
+          
+          ${appData.notes && appData.notes.length > 0 ? appData.notes.map(note => `
+            <div class="tank-log-entry">
+              <div class="log-date">${note.title}</div>
+              <div class="param"><span class="param-label">Date:</span> ${new Date(note.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+              <div class="log-notes">${note.content}</div>
+            </div>
+          `).join('') : `<p>No notes added yet. Add your first note using the + button below.</p>`}
+          
+          <div class="add-button" onclick="showNoteForm()">+</div>
         </section>
         
         <!-- Features Section -->
@@ -962,6 +1518,9 @@ app.get('/', async (req, res) => {
             // Show the selected section
             document.getElementById(sectionId).classList.add('active');
           }
+          
+          // Initialize profile pictures array from server
+          const profilePictures = ${clientProfilePictures};
           
           // Initialize variables for profile management
           let currentProfilePic = {
@@ -1173,27 +1732,363 @@ app.get('/', async (req, res) => {
             }
           }
           
-          // Add button click alert
+          // Task form modal
+          function showTaskForm() {
+            const taskFormModal = document.getElementById('task-form-modal');
+            taskFormModal.classList.add('active');
+          }
+          
+          function hideTaskForm() {
+            const taskFormModal = document.getElementById('task-form-modal');
+            taskFormModal.classList.remove('active');
+          }
+          
+          // Save new maintenance task
+          function saveMaintenanceTask() {
+            const taskName = document.getElementById('task-name').value;
+            const taskDate = document.getElementById('task-date').value;
+            const taskRecurring = document.getElementById('task-recurring').value;
+            const taskPriority = document.getElementById('task-priority').value;
+            const taskNotify = document.getElementById('task-notify').checked;
+            
+            if (!taskName || !taskDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare task data
+            const taskData = {
+              fishId: 1, // Default to Volt
+              task: taskName,
+              dueDate: taskDate,
+              recurring: taskRecurring,
+              priority: taskPriority,
+              notify: taskNotify,
+              lastDone: new Date().toISOString()
+            };
+            
+            // Send to server
+            fetch('/api/maintenance', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(taskData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Task added successfully!');
+                hideTaskForm();
+                // Refresh page to show new task
+                location.reload();
+              } else {
+                alert('Error adding task: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding task:', error);
+              alert('Error adding task. Please try again.');
+            });
+          }
+          
+          // Add button click handler
           document.querySelector('.add-button').addEventListener('click', function() {
             const activeSectionId = document.querySelector('.content-section.active').id;
             
-            let message = 'Add new ';
             switch(activeSectionId) {
-              case 'home-section':
-                message += 'home entry';
+              case 'maintenance-section':
+                showTaskForm();
                 break;
               case 'tanklog-section':
-                message += 'tank log entry';
+                showLogForm();
                 break;
-              case 'maintenance-section':
-                message += 'maintenance task';
+              case 'plants-section':
+                showPlantForm();
+                break;
+              case 'treatments-section':
+                showTreatmentForm();
+                break;
+              case 'gallery-section':
+                showPhotoForm();
+                break;
+              case 'notes-section':
+                showNoteForm();
                 break;
               default:
-                message += 'entry';
+                alert('Add new entry (Feature coming soon for this section)');
+            }
+          });
+          
+          // Tank Log form functions
+          function showLogForm() {
+            const logFormModal = document.getElementById('log-form-modal');
+            logFormModal.classList.add('active');
+          }
+          
+          function hideLogForm() {
+            const logFormModal = document.getElementById('log-form-modal');
+            logFormModal.classList.remove('active');
+          }
+          
+          function saveTankLog() {
+            const logDate = document.getElementById('log-date').value;
+            const logAmmonia = document.getElementById('log-ammonia').value;
+            const logNitrite = document.getElementById('log-nitrite').value;
+            const logNitrate = document.getElementById('log-nitrate').value;
+            const logPh = document.getElementById('log-ph').value;
+            const logTemp = document.getElementById('log-temp').value;
+            const logNotes = document.getElementById('log-notes').value;
+            
+            if (!logDate) {
+              alert('Please select a date.');
+              return;
             }
             
-            alert(message + ' (Feature coming soon!)');
-          });
+            // Prepare log data
+            const logData = {
+              fishId: 1, // Default to Volt
+              date: logDate,
+              ammonia: logAmmonia || '0',
+              nitrite: logNitrite || '0',
+              nitrate: logNitrate || '0',
+              ph: logPh || '7.0',
+              temp: logTemp || '78',
+              notes: logNotes || ''
+            };
+            
+            // Send to server
+            fetch('/api/tank-logs', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(logData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Tank log added successfully!');
+                hideLogForm();
+                // Refresh page to show new log
+                location.reload();
+              } else {
+                alert('Error adding tank log: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding tank log:', error);
+              alert('Error adding tank log. Please try again.');
+            });
+          }
+          
+          // Plant form functions
+          function showPlantForm() {
+            const plantFormModal = document.getElementById('plant-form-modal');
+            plantFormModal.classList.add('active');
+          }
+          
+          function hidePlantForm() {
+            const plantFormModal = document.getElementById('plant-form-modal');
+            plantFormModal.classList.remove('active');
+          }
+          
+          function savePlant() {
+            const plantName = document.getElementById('plant-name').value;
+            const plantSpecies = document.getElementById('plant-species').value;
+            const plantDate = document.getElementById('plant-date').value;
+            const plantCare = document.getElementById('plant-care').value;
+            
+            if (!plantName || !plantDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare plant data
+            const plantData = {
+              fishId: 1, // Default to Volt's tank
+              name: plantName,
+              species: plantSpecies,
+              dateAdded: plantDate,
+              careInstructions: plantCare
+            };
+            
+            // Send to server
+            fetch('/api/plants', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(plantData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Plant added successfully!');
+                hidePlantForm();
+                // Refresh page to show new plant
+                location.reload();
+              } else {
+                alert('Error adding plant: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding plant:', error);
+              alert('Error adding plant. Please try again.');
+            });
+          }
+          
+          // Treatment form functions
+          function showTreatmentForm() {
+            const treatmentFormModal = document.getElementById('treatment-form-modal');
+            treatmentFormModal.classList.add('active');
+          }
+          
+          function hideTreatmentForm() {
+            const treatmentFormModal = document.getElementById('treatment-form-modal');
+            treatmentFormModal.classList.remove('active');
+          }
+          
+          function saveTreatment() {
+            const treatmentName = document.getElementById('treatment-name').value;
+            const treatmentCondition = document.getElementById('treatment-condition').value;
+            const treatmentStartDate = document.getElementById('treatment-start-date').value;
+            const treatmentEndDate = document.getElementById('treatment-end-date').value;
+            const treatmentDosage = document.getElementById('treatment-dosage').value;
+            const treatmentNotes = document.getElementById('treatment-notes').value;
+            
+            if (!treatmentName || !treatmentCondition || !treatmentStartDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare treatment data
+            const treatmentData = {
+              fishId: 1, // Default to Volt
+              name: treatmentName,
+              condition: treatmentCondition,
+              startDate: treatmentStartDate,
+              endDate: treatmentEndDate || null,
+              dosage: treatmentDosage,
+              notes: treatmentNotes
+            };
+            
+            // Send to server
+            fetch('/api/treatments', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(treatmentData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Treatment added successfully!');
+                hideTreatmentForm();
+                // Refresh page to show new treatment
+                location.reload();
+              } else {
+                alert('Error adding treatment: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding treatment:', error);
+              alert('Error adding treatment. Please try again.');
+            });
+          }
+          
+          // Photo form functions
+          function showPhotoForm() {
+            const photoFormModal = document.getElementById('photo-form-modal');
+            photoFormModal.classList.add('active');
+          }
+          
+          function hidePhotoForm() {
+            const photoFormModal = document.getElementById('photo-form-modal');
+            photoFormModal.classList.remove('active');
+          }
+          
+          function savePhoto() {
+            const photoTitle = document.getElementById('photo-title').value;
+            const photoDate = document.getElementById('photo-date').value;
+            const photoNotes = document.getElementById('photo-notes').value;
+            const photoFile = document.getElementById('photo-file').files[0];
+            
+            if (!photoTitle || !photoDate || !photoFile) {
+              alert('Please fill in all required fields and select a file.');
+              return;
+            }
+            
+            // Prepare form data for file upload
+            const formData = new FormData();
+            formData.append('title', photoTitle);
+            formData.append('date', photoDate);
+            formData.append('notes', photoNotes);
+            formData.append('fishId', 1); // Default to Volt
+            formData.append('photo', photoFile);
+            
+            // Send to server (in real implementation)
+            // For now we'll just simulate success
+            setTimeout(() => {
+              alert('Photo added successfully!');
+              hidePhotoForm();
+            }, 1000);
+          }
+          
+          // Note form functions
+          function showNoteForm() {
+            const noteFormModal = document.getElementById('note-form-modal');
+            noteFormModal.classList.add('active');
+          }
+          
+          function hideNoteForm() {
+            const noteFormModal = document.getElementById('note-form-modal');
+            noteFormModal.classList.remove('active');
+          }
+          
+          function saveNote() {
+            const noteTitle = document.getElementById('note-title').value;
+            const noteDate = document.getElementById('note-date').value;
+            const noteContent = document.getElementById('note-content').value;
+            
+            if (!noteTitle || !noteDate || !noteContent) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare note data
+            const noteData = {
+              fishId: 1, // Default to Volt
+              title: noteTitle,
+              date: noteDate,
+              content: noteContent
+            };
+            
+            // Send to server
+            fetch('/api/notes', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(noteData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Note added successfully!');
+                hideNoteForm();
+                // Refresh page to show new note
+                location.reload();
+              } else {
+                alert('Error adding note: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding note:', error);
+              alert('Error adding note. Please try again.');
+            });
+          }
           
           // Initialize the app
           document.addEventListener('DOMContentLoaded', function() {
@@ -1202,6 +2097,13 @@ app.get('/', async (req, res) => {
             
             // Set up fish avatar click handler
             document.querySelector('.fish-avatar').addEventListener('click', toggleProfilePicker);
+            
+            // Set the date inputs to today's date by default
+            const today = new Date().toISOString().split('T')[0];
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+              input.value = today;
+            });
           });
         </script>
       </body>
