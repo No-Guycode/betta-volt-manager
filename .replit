@@ -4,7 +4,7 @@ modules = ["dotnet", "nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Project"
+runButton = "Run VoltBetta"
 
 [[workflows.workflow]]
 name = "Project"
@@ -66,6 +66,24 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "cd VoltBettaApp && node run.js"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Build Android"
+author = 38797021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd VoltBettaApp && npx expo prebuild && npx expo build:android"
+
+[[workflows.workflow]]
+name = "Run VoltBetta"
+author = 38797021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd VoltBettaApp && node run.js"
 
 [deployment]
 run = ["sh", "-c", "dotnet run"]
