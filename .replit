@@ -4,7 +4,7 @@ modules = ["dotnet", "nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Run VoltBetta"
+runButton = "Run Expo"
 
 [[workflows.workflow]]
 name = "Project"
@@ -84,6 +84,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd VoltBettaApp && node run.js"
+
+[[workflows.workflow]]
+name = "Run Expo"
+author = 38797021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd VoltBettaApp && npm install && npx expo start --web"
 
 [deployment]
 run = ["sh", "-c", "dotnet run"]
