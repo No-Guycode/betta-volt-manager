@@ -1728,21 +1728,23 @@ app.get('/', async (req, res) => {
               <div class="stat-icon">💧</div>
               <div>
                 <div>Last Water Change</div>
-                <div><strong>4 days ago</strong></div>
+                <div><strong>${appData.maintenanceTasks.find(t => t.task.toLowerCase().includes('water change'))?.lastDone || 'Not recorded'}</strong></div>
               </div>
             </div>
             <div class="stat-item">
               <div class="stat-icon">🧪</div>
               <div>
                 <div>Last Water Test</div>
-                <div><strong>1 week ago</strong></div>
+                <div><strong>${appData.tankLogs.length > 0 ? 
+                  new Date(appData.tankLogs[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 
+                  'Not recorded'}</strong></div>
               </div>
             </div>
             <div class="stat-item">
               <div class="stat-icon">📷</div>
               <div>
                 <div>Photos Taken</div>
-                <div><strong>28 total</strong></div>
+                <div><strong>${appData.photos.length} total</strong></div>
               </div>
             </div>
           </div>
@@ -2036,6 +2038,12 @@ app.get('/', async (req, res) => {
             
             // Show the selected section
             document.getElementById(sectionId).classList.add('active');
+            
+            // For gallery section, check if we have any photos
+            if (sectionId === 'gallery-section') {
+              // This section can be enhanced to fetch latest photos if needed
+              console.log('Showing gallery section');
+            }
           }
           
           // Initialize profile pictures array from server
@@ -2555,8 +2563,14 @@ app.get('/', async (req, res) => {
               if (data.success) {
                 alert('Photo added successfully!');
                 hidePhotoForm();
-                // Refresh page to show new photo
-                location.reload();
+                
+                // Show the gallery section
+                showSection('gallery-section');
+                
+                // Refresh page to show new photo (need to fully reload to get updated data)
+                setTimeout(() => {
+                  location.reload();
+                }, 500);
               } else {
                 alert('Error adding photo: ' + data.message);
               }
