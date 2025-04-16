@@ -1086,6 +1086,68 @@ app.get('/', async (req, res) => {
             background-color: #F04F94;
           }
           
+          /* Add menu styles */
+          .add-menu {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 100;
+            width: 220px;
+            overflow: hidden;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+          }
+          
+          .add-menu.active {
+            display: block;
+            transform: translateY(0);
+            opacity: 1;
+          }
+          
+          .add-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+          }
+          
+          .add-menu-item:hover {
+            background-color: #f7f7f7;
+          }
+          
+          .add-menu-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #F0734F;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 20px;
+          }
+          
+          .add-menu-text {
+            font-weight: bold;
+            color: #444;
+          }
+          
+          .global-add {
+            z-index: 101;
+          }
+          
+          .global-add.active {
+            background-color: #ED4FF0;
+            transform: rotate(45deg);
+          }
+          
           /* Chart styles */
           .chart-container {
             margin: 20px 0;
@@ -1636,7 +1698,36 @@ app.get('/', async (req, res) => {
           </div>
         </section>
         
-        <div class="add-button" title="Add New Entry">+</div>
+        <!-- Global Add Button with Menu -->
+        <div class="add-button global-add" title="Add New Entry" onclick="toggleAddMenu()">+</div>
+        
+        <!-- Add Menu Options -->
+        <div id="add-menu" class="add-menu">
+          <div class="add-menu-item" onclick="showLogForm()">
+            <div class="add-menu-icon">🧪</div>
+            <div class="add-menu-text">Tank Log</div>
+          </div>
+          <div class="add-menu-item" onclick="showTaskForm()">
+            <div class="add-menu-icon">📋</div>
+            <div class="add-menu-text">Maintenance</div>
+          </div>
+          <div class="add-menu-item" onclick="showPlantForm()">
+            <div class="add-menu-icon">🌿</div>
+            <div class="add-menu-text">Plant</div>
+          </div>
+          <div class="add-menu-item" onclick="showTreatmentForm()">
+            <div class="add-menu-icon">💊</div>
+            <div class="add-menu-text">Treatment</div>
+          </div>
+          <div class="add-menu-item" onclick="showPhotoForm()">
+            <div class="add-menu-icon">📷</div>
+            <div class="add-menu-text">Photo</div>
+          </div>
+          <div class="add-menu-item" onclick="showNoteForm()">
+            <div class="add-menu-icon">📝</div>
+            <div class="add-menu-text">Note</div>
+          </div>
+        </div>
         
         <script>
           function showSection(sectionId) {
@@ -2224,6 +2315,34 @@ app.get('/', async (req, res) => {
           // Toggle mobile menu
           function toggleMenu() {
             document.querySelector('nav').classList.toggle('active');
+          }
+          
+          // Toggle add menu
+          function toggleAddMenu() {
+            const addMenu = document.getElementById('add-menu');
+            addMenu.classList.toggle('active');
+            
+            // Toggle active state on the plus button
+            document.querySelector('.global-add').classList.toggle('active');
+            
+            // Close the menu when clicking outside
+            if (addMenu.classList.contains('active')) {
+              setTimeout(() => {
+                document.addEventListener('click', closeAddMenuOnClickOutside);
+              }, 100);
+            }
+          }
+          
+          // Close add menu when clicking outside
+          function closeAddMenuOnClickOutside(event) {
+            const addMenu = document.getElementById('add-menu');
+            const addButton = document.querySelector('.global-add');
+            
+            if (!addMenu.contains(event.target) && event.target !== addButton) {
+              addMenu.classList.remove('active');
+              addButton.classList.remove('active');
+              document.removeEventListener('click', closeAddMenuOnClickOutside);
+            }
           }
           
           // Initialize water parameter chart
