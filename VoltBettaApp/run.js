@@ -476,6 +476,7 @@ app.get('/', async (req, res) => {
     <html>
       <head>
         <title>Volt Betta Manager App</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -956,6 +957,88 @@ app.get('/', async (req, res) => {
             font-size: 14px;
           }
           
+          /* Mobile responsive styles */
+          @media (max-width: 768px) {
+            header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            
+            nav {
+              margin-top: 15px;
+              flex-wrap: wrap;
+              gap: 10px;
+            }
+            
+            .nav-button {
+              font-size: 12px;
+              padding: 6px 10px;
+            }
+            
+            .fish-profile {
+              flex-direction: column;
+            }
+            
+            .gallery-grid {
+              grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .add-button {
+              bottom: 15px;
+              right: 15px;
+              width: 50px;
+              height: 50px;
+              font-size: 24px;
+            }
+            
+            .profile-picker-content {
+              width: 95%;
+            }
+            
+            .profile-options {
+              grid-template-columns: 1fr;
+            }
+          }
+          
+          /* Hamburger menu for mobile */
+          .menu-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+          }
+          
+          .menu-toggle span {
+            height: 3px;
+            width: 100%;
+            background-color: #F04F94;
+            border-radius: 3px;
+          }
+          
+          @media (max-width: 600px) {
+            .menu-toggle {
+              display: flex;
+            }
+            
+            nav {
+              display: none;
+              flex-direction: column;
+              width: 100%;
+            }
+            
+            nav.active {
+              display: flex;
+            }
+            
+            .nav-button {
+              width: 100%;
+              text-align: center;
+              margin-bottom: 5px;
+            }
+          }
+          
           /* Form styles */
           .form-content {
             padding: 0 20px 20px 20px;
@@ -1002,11 +1085,47 @@ app.get('/', async (req, res) => {
           .primary-button {
             background-color: #F04F94;
           }
+          
+          /* Chart styles */
+          .chart-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          }
+          
+          .parameter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+          }
+          
+          .parameter-button {
+            background-color: #f0f0f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+          }
+          
+          .parameter-button.active {
+            background-color: #F04F94;
+            color: white;
+          }
         </style>
       </head>
       <body>
         <header>
           <h1>Volt Betta Manager</h1>
+          <div class="menu-toggle" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <nav>
             <button class="nav-button" onclick="showSection('home-section')">Home</button>
             <button class="nav-button" onclick="showSection('tanklog-section')">Tank Log</button>
@@ -1349,6 +1468,18 @@ app.get('/', async (req, res) => {
         <section id="tanklog-section" class="content-section">
           <h2>Tank Log</h2>
           <p>Track water parameters and tank maintenance over time.</p>
+          
+          <!-- Chart Container -->
+          <div class="chart-container">
+            <div class="parameter-buttons">
+              <button class="parameter-button active" data-param="ammonia">Ammonia</button>
+              <button class="parameter-button" data-param="nitrite">Nitrite</button>
+              <button class="parameter-button" data-param="nitrate">Nitrate</button>
+              <button class="parameter-button" data-param="ph">pH</button>
+              <button class="parameter-button" data-param="temp">Temperature</button>
+            </div>
+            <canvas id="paramsChart"></canvas>
+          </div>
           
           ${appData.tankLogs.map(log => `
             <div class="tank-log-entry">
@@ -2090,10 +2221,136 @@ app.get('/', async (req, res) => {
             });
           }
           
+          // Toggle mobile menu
+          function toggleMenu() {
+            document.querySelector('nav').classList.toggle('active');
+          }
+          
+          // Initialize water parameter chart
+          let waterParamsChart = null;
+          
+          function initializeParamsChart() {
+            const ctx = document.getElementById('paramsChart').getContext('2d');
+            
+            // Get water parameter data from tank logs
+            const tankLogs = ${JSON.stringify(appData.tankLogs || [])};
+            
+            // Sort logs by date (oldest to newest)
+            tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Extract dates and parameter values
+            const labels = tankLogs.map(log => new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const ammoniaData = tankLogs.map(log => log.ammonia);
+            const nitriteData = tankLogs.map(log => log.nitrite);
+            const nitrateData = tankLogs.map(log => log.nitrate);
+            const phData = tankLogs.map(log => log.ph);
+            const tempData = tankLogs.map(log => log.temp);
+            
+            // Initialize chart
+            waterParamsChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Ammonia (ppm)',
+                  data: ammoniaData,
+                  borderColor: '#F04F94',
+                  backgroundColor: 'rgba(240, 79, 148, 0.1)',
+                  borderWidth: 2,
+                  tension: 0.3,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                  tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }
+            });
+          }
+          
+          // Handle parameter button clicks
+          function setupParamButtons() {
+            const buttons = document.querySelectorAll('.parameter-button');
+            const tankLogs = ${JSON.stringify(appData.tankLogs || [])};
+            
+            // Sort logs by date (oldest to newest)
+            tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Extract dates and parameter values
+            const labels = tankLogs.map(log => new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            buttons.forEach(button => {
+              button.addEventListener('click', function() {
+                // Update active button
+                buttons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Get selected parameter
+                const param = this.getAttribute('data-param');
+                let data, color, label;
+                
+                // Set data based on selected parameter
+                switch(param) {
+                  case 'ammonia':
+                    data = tankLogs.map(log => log.ammonia);
+                    color = '#F04F94';
+                    label = 'Ammonia (ppm)';
+                    break;
+                  case 'nitrite':
+                    data = tankLogs.map(log => log.nitrite);
+                    color = '#F0734F';
+                    label = 'Nitrite (ppm)';
+                    break;
+                  case 'nitrate':
+                    data = tankLogs.map(log => log.nitrate);
+                    color = '#F05950';
+                    label = 'Nitrate (ppm)';
+                    break;
+                  case 'ph':
+                    data = tankLogs.map(log => log.ph);
+                    color = '#ED4FF0';
+                    label = 'pH';
+                    break;
+                  case 'temp':
+                    data = tankLogs.map(log => log.temp);
+                    color = '#F08F4F';
+                    label = 'Temperature (°F)';
+                    break;
+                }
+                
+                // Update chart
+                waterParamsChart.data.datasets[0].data = data;
+                waterParamsChart.data.datasets[0].label = label;
+                waterParamsChart.data.datasets[0].borderColor = color;
+                waterParamsChart.data.datasets[0].backgroundColor = color.replace(')', ', 0.1)').replace('rgb', 'rgba');
+                waterParamsChart.update();
+              });
+            });
+          }
+          
           // Initialize the app
           document.addEventListener('DOMContentLoaded', function() {
             // Load notifications
             loadNotifications();
+            
+            // Initialize water parameters chart if we have any tank logs
+            if (document.getElementById('paramsChart')) {
+              initializeParamsChart();
+              setupParamButtons();
+            }
             
             // Set up fish avatar click handler
             document.querySelector('.fish-avatar').addEventListener('click', toggleProfilePicker);
@@ -2103,6 +2360,16 @@ app.get('/', async (req, res) => {
             const dateInputs = document.querySelectorAll('input[type="date"]');
             dateInputs.forEach(input => {
               input.value = today;
+            });
+            
+            // Close menu when a section is selected on mobile
+            const navButtons = document.querySelectorAll('.nav-button');
+            navButtons.forEach(button => {
+              button.addEventListener('click', function() {
+                if (window.innerWidth <= 600) {
+                  document.querySelector('nav').classList.remove('active');
+                }
+              });
             });
           });
         </script>
