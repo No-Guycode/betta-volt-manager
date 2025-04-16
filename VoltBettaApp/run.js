@@ -2,77 +2,335 @@
 const express = require('express');
 const app = express();
 const port = 5000;
+const path = require('path');
+const db = require('./database/db');
+const controllers = require('./database/controllers');
+
+// Initialize database
+async function initDatabase() {
+  try {
+    // Sync database tables
+    await db.syncDatabase();
+    
+    // Initialize with sample data if needed
+    await db.initializeWithSampleData();
+    
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Error initializing database:', error);
+  }
+}
+
+// Initialize the database
+initDatabase();
 
 // Serve static files
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Create array for storing notifications
-let notifications = [
-  { id: 1, title: 'Water Change Today', message: 'Remember to change 25% of the water today (Tuesday)', read: false, date: '2025-04-16', type: 'maintenance' },
-  { id: 2, title: 'Test Water Parameters', message: 'It\'s been a week since you last tested water parameters', read: true, date: '2025-04-14', type: 'reminder' },
-  { id: 3, title: 'Weekly Task Summary', message: 'You have 3 maintenance tasks scheduled for this week', read: true, date: '2025-04-13', type: 'summary' }
-];
-
-// Store default avatar and custom upload option
-let profilePictures = [
+// Store default avatar options
+const profilePictures = [
   { id: 1, name: 'Volt Default', url: '🐠', isEmoji: true },
   { id: 2, name: 'Betta Red', url: '🐟', isEmoji: true },
   { id: 3, name: 'Betta Blue', url: '🐡', isEmoji: true },
   { id: 4, name: 'Custom Upload', url: '', isEmoji: false }
 ];
 
-// Current selected profile picture
-let currentProfilePic = profilePictures[0];
+// Will be set from database in frontend
 
 // API endpoints
-app.get('/api/notifications', (req, res) => {
-  res.json(notifications);
-});
-
-app.post('/api/upload-profile', (req, res) => {
-  // In a real app, this would handle file uploads
-  res.json({ success: true, message: 'Profile picture updated successfully' });
-});
-
-app.post('/api/mark-notification-read', (req, res) => {
-  const { id } = req.body;
-  const notification = notifications.find(n => n.id === id);
-  if (notification) {
-    notification.read = true;
-    res.json({ success: true });
-  } else {
-    res.status(404).json({ success: false, message: 'Notification not found' });
+// Get all notifications
+app.get('/api/notifications', async (req, res) => {
+  try {
+    // Default to fish ID 1 (Volt) for this prototype
+    const fishId = 1;
+    const notifications = await controllers.NotificationController.getAllForFish(fishId);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ success: false, message: 'Error fetching notifications' });
   }
 });
 
-// Mock data for the prototype
-let fishData = {
-  name: 'Volt',
-  species: 'Betta splendens',
-  variant: 'Veiltail',
-  color: 'Red/Blue',
-  age: '~8 months',
-  tank: '3.5 gallon planted',
-  acquisitionDate: 'April 5, 2025'
-};
+// Mark notification as read
+app.post('/api/mark-notification-read', async (req, res) => {
+  try {
+    const { id } = req.body;
+    const result = await controllers.NotificationController.markAsRead(id);
+    
+    if (result) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ success: false, message: 'Error marking notification as read' });
+  }
+});
 
-let maintenanceTasks = [
-  { id: 1, task: 'Water Change (25%)', dueIn: '3 days', recurring: 'Weekly (Tuesday)', lastDone: '4 days ago', notify: true, priority: 'high' },
-  { id: 2, task: 'Replace Filter Media', dueIn: '1 week', recurring: 'Monthly', lastDone: '3 weeks ago', notify: true, priority: 'medium' },
-  { id: 3, task: 'Clean Gravel', dueIn: '10 days', recurring: 'Bi-weekly', lastDone: '4 days ago', notify: true, priority: 'medium' },
-  { id: 4, task: 'Test Water Parameters', dueIn: '2 days', recurring: 'Weekly', lastDone: '5 days ago', notify: true, priority: 'high' },
-  { id: 5, task: 'Trim Plants', dueIn: '5 days', recurring: 'Bi-weekly', lastDone: '9 days ago', notify: true, priority: 'low' }
-];
+// Get fish profile
+app.get('/api/fish/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fish = await controllers.FishController.getById(id);
+    
+    if (fish) {
+      res.json(fish);
+    } else {
+      res.status(404).json({ success: false, message: 'Fish profile not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching fish profile:', error);
+    res.status(500).json({ success: false, message: 'Error fetching fish profile' });
+  }
+});
 
-let tankLogs = [
-  { id: 1, date: '2025-04-10', ammonia: '0', nitrite: '0', nitrate: '5', ph: '7.2', temp: '78', notes: 'Parameters looking good. Added 1mL of plant fertilizer.' },
-  { id: 2, date: '2025-04-03', ammonia: '0', nitrite: '0', nitrate: '10', ph: '7.0', temp: '79', notes: 'Did a 25% water change. Replaced filter media.' },
-  { id: 3, date: '2025-03-27', ammonia: '0', nitrite: '0', nitrate: '15', ph: '7.1', temp: '78', notes: 'Volt seems very active today. Rearranged plants slightly.' }
-];
+// Update fish profile
+app.put('/api/fish/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fishData = req.body;
+    const updatedFish = await controllers.FishController.update(id, fishData);
+    
+    if (updatedFish) {
+      res.json({ success: true, fish: updatedFish });
+    } else {
+      res.status(404).json({ success: false, message: 'Fish profile not found' });
+    }
+  } catch (error) {
+    console.error('Error updating fish profile:', error);
+    res.status(500).json({ success: false, message: 'Error updating fish profile' });
+  }
+});
+
+// Update profile picture
+app.post('/api/upload-profile', async (req, res) => {
+  try {
+    const { fishId, profilePicture, isPictureEmoji } = req.body;
+    
+    // In a real app, this would handle file uploads to a server or cloud storage
+    // For this prototype, we'll just save the URL or emoji
+    const updatedFish = await controllers.FishController.updateProfilePicture(
+      fishId || 1, // Default to fish ID 1 (Volt) for this prototype
+      profilePicture,
+      isPictureEmoji
+    );
+    
+    if (updatedFish) {
+      res.json({ success: true, fish: updatedFish });
+    } else {
+      res.status(404).json({ success: false, message: 'Fish profile not found' });
+    }
+  } catch (error) {
+    console.error('Error updating profile picture:', error);
+    res.status(500).json({ success: false, message: 'Error updating profile picture' });
+  }
+});
+
+// Get maintenance tasks
+app.get('/api/maintenance/:fishId', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const tasks = await controllers.MaintenanceController.getAllForFish(fishId);
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching maintenance tasks:', error);
+    res.status(500).json({ success: false, message: 'Error fetching maintenance tasks' });
+  }
+});
+
+// Get upcoming maintenance tasks
+app.get('/api/maintenance/:fishId/upcoming', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const { days } = req.query;
+    const tasks = await controllers.MaintenanceController.getUpcoming(fishId, days || 7);
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching upcoming maintenance tasks:', error);
+    res.status(500).json({ success: false, message: 'Error fetching upcoming maintenance tasks' });
+  }
+});
+
+// Mark maintenance task as done
+app.post('/api/maintenance/:id/done', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTask = await controllers.MaintenanceController.markAsDone(id);
+    
+    if (updatedTask) {
+      res.json({ success: true, task: updatedTask });
+    } else {
+      res.status(404).json({ success: false, message: 'Maintenance task not found' });
+    }
+  } catch (error) {
+    console.error('Error marking maintenance task as done:', error);
+    res.status(500).json({ success: false, message: 'Error marking maintenance task as done' });
+  }
+});
+
+// Get tank logs
+app.get('/api/tank-logs/:fishId', async (req, res) => {
+  try {
+    const { fishId } = req.params;
+    const logs = await controllers.TankLogController.getAllForFish(fishId);
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching tank logs:', error);
+    res.status(500).json({ success: false, message: 'Error fetching tank logs' });
+  }
+});
+
+// Add tank log
+app.post('/api/tank-logs', async (req, res) => {
+  try {
+    const logData = req.body;
+    const newLog = await controllers.TankLogController.create(logData);
+    res.status(201).json({ success: true, log: newLog });
+  } catch (error) {
+    console.error('Error creating tank log:', error);
+    res.status(500).json({ success: false, message: 'Error creating tank log' });
+  }
+});
+
+// Get plants
+app.get('/api/plants', async (req, res) => {
+  try {
+    const plants = await controllers.PlantController.getAll();
+    res.json(plants);
+  } catch (error) {
+    console.error('Error fetching plants:', error);
+    res.status(500).json({ success: false, message: 'Error fetching plants' });
+  }
+});
+
+// Serve the appropriate data for the frontend
+async function getAppData() {
+  try {
+    // Default to fish ID 1 (Volt) for this prototype
+    const fishId = 1;
+    
+    // Get fish profile
+    const fish = await controllers.FishController.getById(fishId);
+    
+    // If fish doesn't exist yet (first run), use default data
+    if (!fish) {
+      return {
+        fishData: {
+          name: 'Volt',
+          species: 'Betta splendens',
+          variant: 'Veiltail',
+          color: 'Red/Blue',
+          age: '~8 months',
+          tank: '3.5 gallon planted',
+          acquisitionDate: 'April 5, 2025',
+          profilePicture: '🐠',
+          isPictureEmoji: true
+        },
+        maintenanceTasks: [],
+        tankLogs: [],
+        notifications: []
+      };
+    }
+    
+    // Format fish data for the frontend
+    const fishData = {
+      id: fish.id,
+      name: fish.name,
+      species: fish.species,
+      variant: fish.variant,
+      color: fish.color,
+      age: fish.age,
+      tank: fish.tank,
+      acquisitionDate: new Date(fish.acquisitionDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      profilePicture: fish.profilePicture,
+      isPictureEmoji: fish.isPictureEmoji
+    };
+    
+    // Get maintenance tasks and format for frontend
+    const tasks = await controllers.MaintenanceController.getAllForFish(fishId);
+    const maintenanceTasks = tasks.map(task => {
+      // Calculate "due in" days
+      const dueDate = new Date(task.dueDate);
+      const today = new Date();
+      const diffTime = dueDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      let dueIn = diffDays <= 0 ? 'Today' : `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+      
+      // Calculate "last done" days ago
+      const lastDoneDate = new Date(task.lastDone);
+      const lastDoneTime = today - lastDoneDate;
+      const lastDoneDays = Math.floor(lastDoneTime / (1000 * 60 * 60 * 24));
+      
+      let lastDone = lastDoneDays === 0 ? 'Today' : `${lastDoneDays} day${lastDoneDays !== 1 ? 's' : ''} ago`;
+      
+      return {
+        id: task.id,
+        task: task.task,
+        dueIn,
+        recurring: task.recurring,
+        lastDone,
+        notify: task.notify,
+        priority: task.priority
+      };
+    });
+    
+    // Get tank logs
+    const logs = await controllers.TankLogController.getAllForFish(fishId);
+    const tankLogs = logs.map(log => ({
+      id: log.id,
+      date: log.date,
+      ammonia: log.ammonia.toString(),
+      nitrite: log.nitrite.toString(),
+      nitrate: log.nitrate.toString(),
+      ph: log.ph.toString(),
+      temp: log.temp.toString(),
+      notes: log.notes
+    }));
+    
+    // Get notifications
+    const notifications = await controllers.NotificationController.getAllForFish(fishId);
+    
+    return {
+      fishData,
+      maintenanceTasks,
+      tankLogs,
+      notifications
+    };
+  } catch (error) {
+    console.error('Error getting app data:', error);
+    
+    // Return default data in case of error
+    return {
+      fishData: {
+        name: 'Volt',
+        species: 'Betta splendens',
+        variant: 'Veiltail',
+        color: 'Red/Blue',
+        age: '~8 months',
+        tank: '3.5 gallon planted',
+        acquisitionDate: 'April 5, 2025',
+        profilePicture: '🐠',
+        isPictureEmoji: true
+      },
+      maintenanceTasks: [],
+      tankLogs: [],
+      notifications: []
+    };
+  }
+}
 
 // Simple Express server to display app information with interactive elements
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  // Get data from database
+  const appData = await getAppData();
+  
   res.send(`
     <html>
       <head>
@@ -546,26 +804,31 @@ app.get('/', (req, res) => {
         <section id="home-section" class="content-section active">
           <div class="fish-profile">
             <div class="fish-profile-info">
-              <div class="fish-avatar">🐠</div>
-              <h2>${fishData.name}</h2>
-              <p>${fishData.species} - ${fishData.variant}</p>
+              <div class="fish-avatar" id="fish-avatar-container">
+                ${appData.fishData.isPictureEmoji 
+                  ? appData.fishData.profilePicture 
+                  : `<img src="${appData.fishData.profilePicture}" alt="${appData.fishData.name}" />`
+                }
+              </div>
+              <h2>${appData.fishData.name}</h2>
+              <p>${appData.fishData.species} - ${appData.fishData.variant}</p>
               
               <div class="fish-stats">
                 <div class="fish-stat">
                   <div class="stat-label">Age</div>
-                  <div class="stat-value">${fishData.age}</div>
+                  <div class="stat-value">${appData.fishData.age}</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Color</div>
-                  <div class="stat-value">${fishData.color}</div>
+                  <div class="stat-value">${appData.fishData.color}</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Tank</div>
-                  <div class="stat-value">${fishData.tank}</div>
+                  <div class="stat-value">${appData.fishData.tank}</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Acquired</div>
-                  <div class="stat-value">${fishData.acquisitionDate}</div>
+                  <div class="stat-value">${appData.fishData.acquisitionDate}</div>
                 </div>
               </div>
             </div>
@@ -597,7 +860,7 @@ app.get('/', (req, res) => {
           </div>
           
           <h2>Upcoming Maintenance</h2>
-          ${maintenanceTasks.slice(0, 3).map(task => `
+          ${appData.maintenanceTasks.slice(0, 3).map(task => `
             <div class="maintenance-task">
               <div class="task-info">
                 <div class="task-name">${task.task}</div>
@@ -615,7 +878,7 @@ app.get('/', (req, res) => {
           <h2>Tank Log</h2>
           <p>Track water parameters and tank maintenance over time.</p>
           
-          ${tankLogs.map(log => `
+          ${appData.tankLogs.map(log => `
             <div class="tank-log-entry">
               <div class="log-date">${new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
               <div class="log-params">
@@ -635,7 +898,7 @@ app.get('/', (req, res) => {
           <h2>Maintenance Schedule</h2>
           <p>Keep track of recurring tank maintenance tasks.</p>
           
-          ${maintenanceTasks.map(task => `
+          ${appData.maintenanceTasks.map(task => `
             <div class="maintenance-task">
               <div class="task-info">
                 <div class="task-name">${task.task}</div>
@@ -700,6 +963,14 @@ app.get('/', (req, res) => {
             document.getElementById(sectionId).classList.add('active');
           }
           
+          // Initialize variables for profile management
+          let currentProfilePic = {
+            id: 1,
+            url: '${appData.fishData.profilePicture}',
+            name: 'Current Profile', 
+            isEmoji: ${appData.fishData.isPictureEmoji}
+          };
+          
           // Initialize the profile picture picker
           function initProfilePicker() {
             const profileOptions = document.querySelector('.profile-options');
@@ -708,7 +979,7 @@ app.get('/', (req, res) => {
             // Create options from the profile pictures array
             profilePictures.forEach(pic => {
               const option = document.createElement('div');
-              option.className = 'profile-option' + (pic.id === currentProfilePic.id ? ' selected' : '');
+              option.className = 'profile-option' + ((pic.id === 1 && currentProfilePic.isEmoji && pic.url === currentProfilePic.url) ? ' selected' : '');
               option.setAttribute('data-id', pic.id);
               
               if (pic.isEmoji) {
@@ -782,18 +1053,42 @@ app.get('/', (req, res) => {
             if (fileInput.files && fileInput.files[0]) {
               // In a real app, this would handle file uploads to server
               // For this prototype, we'll just simulate success
-              alert('Profile picture uploaded successfully!');
               
               // Update custom upload option
               const customPic = profilePictures.find(p => p.id === 4);
               customPic.url = 'https://via.placeholder.com/200x200/F04F94/FFFFFF?text=Volt'; // Placeholder URL
               customPic.isEmoji = false;
               
-              // Select the custom option
-              document.querySelector('[data-id="4"]').click();
-              
-              // Close the picker
-              toggleProfilePicker();
+              // Update profile picture in database
+              fetch('/api/upload-profile', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  fishId: 1, // Default to Volt
+                  profilePicture: customPic.url,
+                  isPictureEmoji: false
+                })
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Profile picture uploaded successfully!');
+                  
+                  // Select the custom option
+                  document.querySelector('[data-id="4"]').click();
+                  
+                  // Close the picker
+                  toggleProfilePicker();
+                } else {
+                  alert('Error uploading profile picture: ' + data.message);
+                }
+              })
+              .catch(error => {
+                console.error('Error uploading profile picture:', error);
+                alert('Error uploading profile picture. Please try again.');
+              });
             } else {
               alert('Please select a file first.');
             }
@@ -804,49 +1099,68 @@ app.get('/', (req, res) => {
             const notificationsList = document.getElementById('notifications-list');
             notificationsList.innerHTML = '';
             
-            // Get unread count
-            const unreadCount = notifications.filter(n => !n.read).length;
-            document.querySelector('.notification-badge').setAttribute('data-count', unreadCount);
-            
-            if (unreadCount === 0) {
-              document.querySelector('.notification-badge').style.display = 'none';
-            } else {
-              document.querySelector('.notification-badge').style.display = 'inline-block';
-            }
-            
-            // Create notification items
-            notifications.forEach(notification => {
-              const item = document.createElement('div');
-              item.className = 'notification-item' + (notification.read ? '' : ' unread');
-              item.setAttribute('data-id', notification.id);
-              
-              const title = document.createElement('div');
-              title.className = 'notification-title';
-              title.textContent = notification.title;
-              
-              const message = document.createElement('div');
-              message.className = 'notification-message';
-              message.textContent = notification.message;
-              
-              const date = document.createElement('div');
-              date.className = 'notification-date';
-              date.textContent = new Date(notification.date).toLocaleDateString();
-              
-              item.appendChild(title);
-              item.appendChild(message);
-              item.appendChild(date);
-              
-              item.addEventListener('click', function() {
-                // Mark notification as read
-                notification.read = true;
-                loadNotifications();
+            // Get notifications from the server
+            fetch('/api/notifications')
+              .then(response => response.json())
+              .then(notifications => {
+                // Get unread count
+                const unreadCount = notifications.filter(n => !n.read).length;
+                document.querySelector('.notification-badge').setAttribute('data-count', unreadCount);
                 
-                // Show alert with notification message
-                alert(notification.message);
+                if (unreadCount === 0) {
+                  document.querySelector('.notification-badge').style.display = 'none';
+                } else {
+                  document.querySelector('.notification-badge').style.display = 'inline-block';
+                }
+                
+                // Create notification items
+                notifications.forEach(notification => {
+                  const item = document.createElement('div');
+                  item.className = 'notification-item' + (notification.read ? '' : ' unread');
+                  item.setAttribute('data-id', notification.id);
+                  
+                  const title = document.createElement('div');
+                  title.className = 'notification-title';
+                  title.textContent = notification.title;
+                  
+                  const message = document.createElement('div');
+                  message.className = 'notification-message';
+                  message.textContent = notification.message;
+                  
+                  const date = document.createElement('div');
+                  date.className = 'notification-date';
+                  date.textContent = new Date(notification.date).toLocaleDateString();
+                  
+                  item.appendChild(title);
+                  item.appendChild(message);
+                  item.appendChild(date);
+                  
+                  item.addEventListener('click', function() {
+                    // Mark notification as read via API
+                    fetch('/api/mark-notification-read', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ id: notification.id })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.success) {
+                        loadNotifications();
+                      }
+                    });
+                    
+                    // Show alert with notification message
+                    alert(notification.message);
+                  });
+                  
+                  notificationsList.appendChild(item);
+                });
+              })
+              .catch(error => {
+                console.error('Error loading notifications:', error);
               });
-              
-              notificationsList.appendChild(item);
-            });
           }
           
           // Toggle notifications panel

@@ -11,9 +11,12 @@
   "description": "",
   "dependencies": {
     "@react-native-community/cli-server-api": "^13.6.9",
+    "better-sqlite3": "^11.9.1",
     "expo": "^49.0.23",
     "expo-cli": "^6.3.12",
     "express": "^5.1.0",
-    "react-native": "^0.79.1"
+    "react-native": "^0.79.1",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7"
   }
 }
