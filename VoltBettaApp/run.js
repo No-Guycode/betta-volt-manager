@@ -26,7 +26,33 @@ initDatabase();
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());
+
+// Set up multer for file uploads
+const multer = require('multer');
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+  }
+});
 
 // Store default avatar options
 const profilePictures = [
@@ -104,27 +130,62 @@ app.put('/api/fish/:id', async (req, res) => {
   }
 });
 
-// Update profile picture
+// Update profile picture - emoji only
 app.post('/api/upload-profile', async (req, res) => {
   try {
     const { fishId, profilePicture, isPictureEmoji } = req.body;
     
-    // In a real app, this would handle file uploads to a server or cloud storage
-    // For this prototype, we'll just save the URL or emoji
-    const updatedFish = await controllers.FishController.updateProfilePicture(
-      fishId || 1, // Default to fish ID 1 (Volt) for this prototype
-      profilePicture,
-      isPictureEmoji
-    );
-    
-    if (updatedFish) {
-      res.json({ success: true, fish: updatedFish });
+    if (isPictureEmoji) {
+      // For emoji profiles, just save the emoji
+      const updatedFish = await controllers.FishController.updateProfilePicture(
+        fishId || 1, // Default to fish ID 1 (Volt) for this prototype
+        profilePicture,
+        true
+      );
+      
+      if (updatedFish) {
+        res.json({ success: true, fish: updatedFish });
+      } else {
+        res.status(404).json({ success: false, message: 'Fish profile not found' });
+      }
     } else {
-      res.status(404).json({ success: false, message: 'Fish profile not found' });
+      // For non-emoji profiles, we'll handle in the file upload endpoint
+      res.status(400).json({ success: false, message: 'Use /api/upload-profile-image for file uploads' });
     }
   } catch (error) {
     console.error('Error updating profile picture:', error);
     res.status(500).json({ success: false, message: 'Error updating profile picture' });
+  }
+});
+
+// Upload profile picture image
+app.post('/api/upload-profile-image', upload.single('profile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    
+    const fishId = req.body.fishId || 1; // Default to fish ID 1 (Volt) for this prototype
+    const profilePicture = `/uploads/${req.file.filename}`;
+    
+    const updatedFish = await controllers.FishController.updateProfilePicture(
+      fishId,
+      profilePicture,
+      false // Not an emoji
+    );
+    
+    if (updatedFish) {
+      res.json({ 
+        success: true, 
+        fish: updatedFish,
+        url: profilePicture
+      });
+    } else {
+      res.status(404).json({ success: false, message: 'Fish profile not found' });
+    }
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    res.status(500).json({ success: false, message: 'Error uploading profile picture' });
   }
 });
 
@@ -265,14 +326,26 @@ app.get('/api/photos/:fishId', async (req, res) => {
   }
 });
 
-// Add new photo
-app.post('/api/photos', async (req, res) => {
+// Add new photo with file upload
+app.post('/api/photos', upload.single('photo'), async (req, res) => {
   try {
-    // In a real implementation, this would handle file uploads
-    // For this prototype, we'll just create a record with the metadata
-    const photoData = req.body;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    
+    const photoData = {
+      ...req.body,
+      url: `/uploads/${req.file.filename}`, 
+      FishProfileId: req.body.fishId || 1 // Default to Volt
+    };
+    
+    // Save to database
     const newPhoto = await controllers.PhotoController.create(photoData);
-    res.status(201).json({ success: true, photo: newPhoto });
+    res.status(201).json({ 
+      success: true, 
+      photo: newPhoto,
+      url: photoData.url
+    });
   } catch (error) {
     console.error('Error creating photo:', error);
     res.status(500).json({ success: false, message: 'Error creating photo' });
@@ -1178,6 +1251,168 @@ app.get('/', async (req, res) => {
             background-color: #F04F94;
             color: white;
           }
+          
+          /* Treatment Card Styles */
+          .treatments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .treatment-card {
+            position: relative;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            overflow: hidden;
+          }
+          
+          .treatment-active {
+            border-left: 4px solid #ED4FF0;
+          }
+          
+          .treatment-completed {
+            border-left: 4px solid #4CAF50;
+          }
+          
+          .treatment-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+          }
+          
+          .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+          }
+          
+          .status-badge.active {
+            background-color: #ED4FF0;
+          }
+          
+          .status-badge.completed {
+            background-color: #4CAF50;
+          }
+          
+          .treatment-header {
+            margin-bottom: 15px;
+            padding-right: 70px;
+          }
+          
+          .treatment-header h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+          }
+          
+          .treatment-condition {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+          }
+          
+          .treatment-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          
+          .treatment-dates {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          
+          .treatment-date, .treatment-dosage {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 5px 0;
+            border-bottom: 1px dashed #eee;
+          }
+          
+          .date-label, .dosage-label, .notes-label {
+            font-weight: bold;
+            color: #555;
+          }
+          
+          .treatment-notes {
+            margin-top: 10px;
+            padding-top: 5px;
+            border-top: 1px solid #eee;
+          }
+          
+          .notes-label {
+            margin-bottom: 5px;
+          }
+          
+          .notes-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #666;
+          }
+          
+          /* Notes styling */
+          .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .note-card {
+            position: relative;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-left: 4px solid #F08F4F;
+          }
+          
+          .note-header {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+          }
+          
+          .note-header h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+          }
+          
+          .note-date {
+            font-size: 12px;
+            color: #777;
+          }
+          
+          .note-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+          }
+          
+          .note-content p {
+            margin: 0;
+          }
+          
+          /* Empty state styling */
+          .empty-state {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          
+          .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+          }
         </style>
       </head>
       <body>
@@ -1602,17 +1837,61 @@ app.get('/', async (req, res) => {
           <h2>Treatment Plans</h2>
           <p>Track medication, supplements, and treatment plans for your fish.</p>
           
-          ${appData.treatments && appData.treatments.length > 0 ? appData.treatments.map(treatment => `
-            <div class="tank-log-entry">
-              <div class="log-date">${treatment.name} - ${treatment.condition}</div>
-              <div class="log-params">
-                <div class="param"><span class="param-label">Started:</span> ${new Date(treatment.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                ${treatment.endDate ? `<div class="param"><span class="param-label">Ended:</span> ${new Date(treatment.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>` : ''}
-                ${treatment.dosage ? `<div class="param"><span class="param-label">Dosage:</span> ${treatment.dosage}</div>` : ''}
-              </div>
-              <div class="log-notes">${treatment.notes || 'No notes provided.'}</div>
+          ${appData.treatments && appData.treatments.length > 0 ? `
+            <div class="treatments-grid">
+              ${appData.treatments.map(treatment => {
+                // Determine if treatment is active or completed
+                const isActive = !treatment.endDate;
+                const statusClass = isActive ? 'treatment-active' : 'treatment-completed';
+                
+                return `
+                <div class="treatment-card ${statusClass}">
+                  <div class="treatment-status">
+                    ${isActive ? 
+                      '<span class="status-badge active">Active</span>' : 
+                      '<span class="status-badge completed">Completed</span>'
+                    }
+                  </div>
+                  <div class="treatment-header">
+                    <h3>${treatment.name}</h3>
+                    <div class="treatment-condition">For: ${treatment.condition}</div>
+                  </div>
+                  <div class="treatment-details">
+                    <div class="treatment-dates">
+                      <div class="treatment-date">
+                        <span class="date-label">Started:</span>
+                        <span class="date-value">${new Date(treatment.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      ${treatment.endDate ? `
+                        <div class="treatment-date">
+                          <span class="date-label">Ended:</span>
+                          <span class="date-value">${new Date(treatment.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      ` : ''}
+                    </div>
+                    ${treatment.dosage ? `
+                      <div class="treatment-dosage">
+                        <span class="dosage-label">Dosage:</span>
+                        <span class="dosage-value">${treatment.dosage}</span>
+                      </div>
+                    ` : ''}
+                    ${treatment.notes ? `
+                      <div class="treatment-notes">
+                        <div class="notes-label">Notes:</div>
+                        <div class="notes-content">${treatment.notes}</div>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+              }).join('')}
             </div>
-          `).join('') : `<p>No treatments added yet. Add your first treatment using the + button below.</p>`}
+          ` : `
+            <div class="empty-state">
+              <div class="empty-icon">💊</div>
+              <p>No treatments added yet. Add your first treatment using the + button below.</p>
+            </div>
+          `}
           
           <div class="add-button" onclick="showTreatmentForm()">+</div>
         </section>
@@ -1627,17 +1906,22 @@ app.get('/', async (req, res) => {
               ${appData.photos.map(photo => `
                 <div class="gallery-item">
                   <div class="gallery-image">
-                    <img src="${photo.photoUrl || 'https://via.placeholder.com/300x200?text=Volt'}" alt="${photo.title}">
+                    <img src="${photo.url}" alt="${photo.title}">
                   </div>
                   <div class="gallery-info">
                     <div class="gallery-title">${photo.title}</div>
                     <div class="gallery-date">${new Date(photo.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                    <div class="gallery-notes">${photo.notes || ''}</div>
+                    <div class="gallery-notes">${photo.description || ''}</div>
                   </div>
                 </div>
               `).join('')}
             </div>
-          ` : `<p>No photos added yet. Add your first photo using the + button below.</p>`}
+          ` : `
+            <div class="empty-state">
+              <div class="empty-icon">📷</div>
+              <p>No photos added yet. Add your first photo using the + button below.</p>
+            </div>
+          `}
           
           <div class="add-button" onclick="showPhotoForm()">+</div>
         </section>
@@ -1647,13 +1931,26 @@ app.get('/', async (req, res) => {
           <h2>Notes</h2>
           <p>Record observations and important information about your betta.</p>
           
-          ${appData.notes && appData.notes.length > 0 ? appData.notes.map(note => `
-            <div class="tank-log-entry">
-              <div class="log-date">${note.title}</div>
-              <div class="param"><span class="param-label">Date:</span> ${new Date(note.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-              <div class="log-notes">${note.content}</div>
+          ${appData.notes && appData.notes.length > 0 ? `
+            <div class="notes-grid">
+              ${appData.notes.map(note => `
+                <div class="note-card">
+                  <div class="note-header">
+                    <h3>${note.title}</h3>
+                    <div class="note-date">${new Date(note.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                  </div>
+                  <div class="note-content">
+                    <p>${note.content}</p>
+                  </div>
+                </div>
+              `).join('')}
             </div>
-          `).join('') : `<p>No notes added yet. Add your first note using the + button below.</p>`}
+          ` : `
+            <div class="empty-state">
+              <div class="empty-icon">📝</div>
+              <p>No notes added yet. Add your first note using the + button below.</p>
+            </div>
+          `}
           
           <div class="add-button" onclick="showNoteForm()">+</div>
         </section>
@@ -1832,36 +2129,34 @@ app.get('/', async (req, res) => {
           function uploadProfilePicture() {
             const fileInput = document.getElementById('profile-upload');
             if (fileInput.files && fileInput.files[0]) {
-              // In a real app, this would handle file uploads to server
-              // For this prototype, we'll just simulate success
+              const formData = new FormData();
+              formData.append('profile', fileInput.files[0]);
+              formData.append('fishId', 1); // Default to Volt
               
-              // Update custom upload option
-              const customPic = profilePictures.find(p => p.id === 4);
-              customPic.url = 'https://via.placeholder.com/200x200/F04F94/FFFFFF?text=Volt'; // Placeholder URL
-              customPic.isEmoji = false;
-              
-              // Update profile picture in database
-              fetch('/api/upload-profile', {
+              fetch('/api/upload-profile-image', {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  fishId: 1, // Default to Volt
-                  profilePicture: customPic.url,
-                  isPictureEmoji: false
-                })
+                body: formData
               })
               .then(response => response.json())
               .then(data => {
                 if (data.success) {
                   alert('Profile picture uploaded successfully!');
                   
+                  // Update custom upload option
+                  const customPic = profilePictures.find(p => p.id === 4);
+                  customPic.url = data.url;
+                  customPic.isEmoji = false;
+                  
                   // Select the custom option
                   document.querySelector('[data-id="4"]').click();
                   
                   // Close the picker
                   toggleProfilePicker();
+                  
+                  // Refresh page to show the new profile picture
+                  setTimeout(() => {
+                    location.reload();
+                  }, 1000);
                 } else {
                   alert('Error uploading profile picture: ' + data.message);
                 }
@@ -2246,16 +2541,30 @@ app.get('/', async (req, res) => {
             const formData = new FormData();
             formData.append('title', photoTitle);
             formData.append('date', photoDate);
-            formData.append('notes', photoNotes);
+            formData.append('description', photoNotes);
             formData.append('fishId', 1); // Default to Volt
             formData.append('photo', photoFile);
             
-            // Send to server (in real implementation)
-            // For now we'll just simulate success
-            setTimeout(() => {
-              alert('Photo added successfully!');
-              hidePhotoForm();
-            }, 1000);
+            // Send to server
+            fetch('/api/photos', {
+              method: 'POST',
+              body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Photo added successfully!');
+                hidePhotoForm();
+                // Refresh page to show new photo
+                location.reload();
+              } else {
+                alert('Error adding photo: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding photo:', error);
+              alert('Error adding photo. Please try again.');
+            });
           }
           
           // Note form functions
