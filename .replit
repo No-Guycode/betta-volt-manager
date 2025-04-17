@@ -103,6 +103,39 @@ mode = "sequential"
 task = "shell.exec"
 args = "cd VoltBettaApp && npm install && npx expo install expo-dev-client && npx expo prebuild && npx expo build:android"
 
+[[workflows.workflow]]
+name = "Clean Windows Files"
+author = 38797021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "rm -f VoltBettaApp/android/gradlew.bat"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.cs\" -type f -delete"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.xaml\" -type f -delete"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.sln\" -type f -delete"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.csproj\" -type f -delete"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.vcxproj\" -type f -delete"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "find . -name \"*.dll\" -type f -delete"
+
 [deployment]
 run = ["sh", "-c", "dotnet run"]
 
