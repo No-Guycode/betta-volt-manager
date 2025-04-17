@@ -1,0 +1,50 @@
+
+up to date, audited 1135 packages in 4s
+
+150 packages are looking for funding
+  run `npm fund` for details
+
+12 vulnerabilities (2 low, 10 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+› Installing 1 SDK 49.0.0 compatible native module using npm
+> npm install
+
+up to date, audited 1135 packages in 3s
+
+150 packages are looking for funding
+  run `npm fund` for details
+
+12 vulnerabilities (2 low, 10 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✔ Created native projects | /android, /ios already created | gitignore skipped
+› Using current versions instead of recommended react-native@0.72.10.
+✔ Updated package.json and added index.js entry point for iOS and Android
+› Installing using npm
+> npm install
+Warning: This command requires version ^2.1.0 of `sharp-cli`. 
+Currently installed version: "5.1.0" 
+Required version: "^2.1.0" 
+You can install it using `npm install -g sharp-cli@^2.1.0`. 
+
+For prerequisites, see: https://sharp.dimens.io/en/stable/install/#prerequisites
+✖ Config sync failed
+Error: [android.dangerous]: withAndroidDangerousBaseMod: It was not possible to generate splash screen './assets/adaptive-icon.png'. Input file contains unsupported image format
+Error: [android.dangerous]: withAndroidDangerousBaseMod: It was not possible to generate splash screen './assets/adaptive-icon.png'. Input file contains unsupported image format
+    at resizeAsync (/home/runner/workspace/VoltBettaApp/node_modules/@expo/image-utils/build/Image.js:103:15)
+    at async generateImageAsync (/home/runner/workspace/VoltBettaApp/node_modules/@expo/image-utils/build/Image.js:156:18)
+    at async generateIconAsync (/home/runner/workspace/VoltBettaApp/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js:350:11)
+    at async /home/runner/workspace/VoltBettaApp/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js:278:21
+    at async Promise.all (index 4)
+    at async generateMultiLayerImageAsync (/home/runner/workspace/VoltBettaApp/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js:274:3)
+    at async setIconAsync (/home/runner/workspace/VoltBettaApp/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js:161:3)
+    at async /home/runner/workspace/VoltBettaApp/node_modules/@expo/prebuild-config/build/plugins/icons/withAndroidIcons.js:104:5
+    at async action (/home/runner/workspace/VoltBettaApp/node_modules/@expo/config-plugins/build/plugins/withMod.js:201:23)
+    at async interceptingMod (/home/runner/workspace/VoltBettaApp/node_modules/@expo/config-plugins/build/plugins/withMod.js:105:21)
