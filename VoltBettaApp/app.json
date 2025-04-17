@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "Volt Betta Manager",
@@ -19,6 +18,11 @@
     "platforms": [
       "android",
       "ios"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "26d3ba9c-87e0-48cf-b97f-a1f38289dbd3"
+      }
+    }
   }
 }
