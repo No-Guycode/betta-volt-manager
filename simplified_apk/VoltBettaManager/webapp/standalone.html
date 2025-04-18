@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Volt Betta Manager - Mobile Version</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="androidBridge.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      background-color: #fff;
+      color: #333;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 3px solid #F04F94;
+      padding-bottom: 10px;
+    }
+    nav {
+      display: flex;
+      gap: 15px;
+    }
+    .nav-button {
+      background-color: #F04F94;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .nav-button:hover {
+      background-color: #ED4FF0;
+      transform: translateY(-2px);
+    }
+    h1 { color: #F04F94; }
+    h2 { color: #F0734F; margin-top: 30px; border-bottom: 2px dashed #F08F4F; padding-bottom: 5px; }
+    .feature {
+      background: #fff9f7;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border-left: 5px solid #F05950;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    .feature:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .feature h3 {
+      margin-top: 0;
+      color: #ED4FF0;
+      display: flex;
+      align-items: center;
+    }
+    .feature h3:before {
+      content: '✦';
+      margin-right: 8px;
+      color: #F51A0F;
+    }
+    .content-section {
+      display: none; /* Hidden by default */
+    }
+    .content-section.active {
+      display: block;
+    }
+    #home-section {
+      display: block; /* Show by default */
+    }
+    .fish-profile {
+      background: linear-gradient(135deg, #F04F94, #F0734F);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .fish-profile-info {
+      flex: 1;
+      min-width: 300px;
+    }
+    .fish-avatar {
+      width: 100px;
+      height: 100px;
+      background-color: #fff;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      font-size: 40px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    button {
+      background-color: #F04F94;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      background-color: #ED4FF0;
+      transform: scale(1.05);
+    }
+    .fish-stats {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .fish-stat {
+      background-color: rgba(255,255,255,0.2);
+      padding: 8px 12px;
+      border-radius: 5px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .stat-value {
+      font-weight: bold;
+    }
+    .quick-stats {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .android-notice {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="androidNotice" class="android-notice">
+    Running on Android device
+  </div>
+  
+  <header>
+    <h1>Volt Betta Manager</h1>
+    <nav>
+      <button class="nav-button" onclick="showSection('home-section')">Home</button>
+      <button class="nav-button" onclick="showSection('fish-section')">My Betta</button>
+      <button class="nav-button" onclick="showSection('maintenance-section')">Maintenance</button>
+    </nav>
+  </header>
+
+  <div id="home-section" class="content-section active">
+    <h2>Welcome to Volt Betta Manager</h2>
+    <p>Your comprehensive Betta fish care companion</p>
+    
+    <div class="feature">
+      <h3>Track Your Betta's Health</h3>
+      <p>Monitor growth, behavior, and health indicators to ensure your Betta is thriving.</p>
+    </div>
+    
+    <div class="feature">
+      <h3>Maintenance Schedule</h3>
+      <p>Never miss important tank maintenance with customizable reminders.</p>
+    </div>
+    
+    <div class="feature">
+      <h3>Water Parameter Tracking</h3>
+      <p>Record and visualize critical water parameters over time.</p>
+    </div>
+  </div>
+
+  <div id="fish-section" class="content-section">
+    <h2>My Betta</h2>
+    
+    <div class="fish-profile">
+      <div class="fish-profile-info">
+        <div class="fish-avatar" id="fishAvatar">🐠</div>
+        <h2 id="fishName">Your Betta</h2>
+        <div class="fish-stats">
+          <div class="fish-stat">
+            <div class="stat-label">Species</div>
+            <div class="stat-value">Betta splendens</div>
+          </div>
+          <div class="fish-stat">
+            <div class="stat-label">Color</div>
+            <div class="stat-value">Blue</div>
+          </div>
+          <div class="fish-stat">
+            <div class="stat-label">Time with you</div>
+            <div class="stat-value" id="fishTime">0 days</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="quick-stats">
+      <h3>Health Overview</h3>
+      <p>Your Betta appears to be in good health based on recent observations.</p>
+      <button onclick="checkHealth()">Check Health</button>
+    </div>
+  </div>
+
+  <div id="maintenance-section" class="content-section">
+    <h2>Maintenance Schedule</h2>
+    
+    <div class="maintenance-tasks">
+      <div class="feature">
+        <h3>Water Change</h3>
+        <p>25% water change recommended every 7 days</p>
+        <p>Last done: <span id="lastWaterChange">Not recorded</span></p>
+        <button onclick="completeTask('waterChange')">Mark Complete</button>
+      </div>
+      
+      <div class="feature">
+        <h3>Filter Cleaning</h3>
+        <p>Clean filter media every 14 days (in tank water)</p>
+        <p>Last done: <span id="lastFilterCleaning">Not recorded</span></p>
+        <button onclick="completeTask('filterCleaning')">Mark Complete</button>
+      </div>
+      
+      <div class="feature">
+        <h3>Water Testing</h3>
+        <p>Check ammonia, nitrite, nitrate, and pH every 7 days</p>
+        <p>Last done: <span id="lastWaterTesting">Not recorded</span></p>
+        <button onclick="completeTask('waterTesting')">Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Basic functions for the standalone version
+    function showSection(sectionId) {
+      // Hide all sections
+      const sections = document.querySelectorAll('.content-section');
+      sections.forEach(section => {
+        section.classList.remove('active');
+      });
+      
+      // Show the selected section
+      document.getElementById(sectionId).classList.add('active');
+    }
+    
+    function checkHealth() {
+      alert('Health check feature available in full version. Your Betta appears healthy!');
+    }
+    
+    function completeTask(taskType) {
+      const today = new Date().toLocaleDateString();
+      const elementId = 'last' + taskType.charAt(0).toUpperCase() + taskType.slice(1);
+      document.getElementById(elementId).textContent = today;
+      
+      // Save to local storage
+      localStorage.setItem(elementId, today);
+      
+      alert('Task marked as complete!');
+    }
+    
+    // Load saved data from localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if running in Android
+      if (typeof AndroidBridge !== 'undefined' && AndroidBridge.isRunningInAndroid()) {
+        document.getElementById('androidNotice').style.display = 'block';
+        AndroidBridge.showToast('Welcome to Volt Betta Manager!');
+      }
+      
+      // Load fish name or set default
+      const fishName = localStorage.getItem('fishName') || 'Your Betta';
+      document.getElementById('fishName').textContent = fishName;
+      
+      // Calculate time with fish
+      const acquisitionDate = localStorage.getItem('acquisitionDate');
+      if (acquisitionDate) {
+        const acquired = new Date(acquisitionDate);
+        const today = new Date();
+        const timeDiff = Math.abs(today.getTime() - acquired.getTime());
+        const diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        document.getElementById('fishTime').textContent = diffDays + ' days';
+      } else {
+        // Set a default acquisition date if none exists
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() - 30); // 30 days ago
+        localStorage.setItem('acquisitionDate', defaultDate.toISOString());
+        document.getElementById('fishTime').textContent = '30 days';
+      }
+      
+      // Load maintenance task dates
+      const tasks = ['waterChange', 'filterCleaning', 'waterTesting'];
+      tasks.forEach(task => {
+        const elementId = 'last' + task.charAt(0).toUpperCase() + task.slice(1);
+        const lastDate = localStorage.getItem(elementId);
+        if (lastDate) {
+          document.getElementById(elementId).textContent = lastDate;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
