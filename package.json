@@ -16,6 +16,7 @@
     "expo": "^49.0.23",
     "expo-cli": "^6.3.12",
     "express": "^5.1.0",
+    "jdk": "^0.0.0",
     "multer": "^1.4.5-lts.2",
     "react-native": "^0.79.1",
     "sequelize": "^6.37.7",
