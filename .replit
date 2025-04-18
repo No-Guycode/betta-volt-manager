@@ -4,7 +4,7 @@ modules = ["dotnet", "nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Build Android APK"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"

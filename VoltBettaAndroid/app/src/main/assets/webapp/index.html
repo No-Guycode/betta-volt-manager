@@ -1,0 +1,2381 @@
+
+    <html>
+      <head>
+        <title>Volt Betta Manager App</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="/js/androidBridge.js"></script>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #fff;
+            color: #333;
+          }
+          header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #F04F94;
+            padding-bottom: 10px;
+          }
+          nav {
+            display: flex;
+            gap: 15px;
+          }
+          .nav-button {
+            background-color: #F04F94;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+          }
+          .nav-button:hover {
+            background-color: #ED4FF0;
+            transform: translateY(-2px);
+          }
+          h1 { color: #F04F94; }
+          h2 { color: #F0734F; margin-top: 30px; border-bottom: 2px dashed #F08F4F; padding-bottom: 5px; }
+          .feature {
+            background: #fff9f7;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #F05950;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+          }
+          .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+          }
+          .feature h3 {
+            margin-top: 0;
+            color: #ED4FF0;
+            display: flex;
+            align-items: center;
+          }
+          .feature h3:before {
+            content: '✦';
+            margin-right: 8px;
+            color: #F51A0F;
+          }
+          .feature:nth-child(odd) {
+            border-left-color: #F08F4F;
+          }
+          .feature:nth-child(even) h3 {
+            color: #F51A0F;
+          }
+          button {
+            background-color: #F04F94;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+          }
+          button:hover {
+            background-color: #ED4FF0;
+            transform: scale(1.05);
+          }
+          .content-section {
+            display: none; /* Hidden by default */
+          }
+          .content-section.active {
+            display: block;
+          }
+          #home-section {
+            display: block; /* Show by default */
+          }
+          .fish-profile {
+            background: linear-gradient(135deg, #F04F94, #F0734F);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+          }
+          .fish-profile-info {
+            flex: 1;
+            min-width: 300px;
+          }
+          .fish-avatar {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 40px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+          }
+          .fish-avatar:hover::after {
+            content: 'Change';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            padding: 4px 0;
+          }
+          .fish-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          .profile-picker {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+          }
+          .profile-picker.active {
+            display: flex;
+          }
+          .profile-picker-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+          }
+          .profile-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          }
+          .profile-picker-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+          }
+          .profile-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+          }
+          .profile-option {
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .profile-option:hover {
+            border-color: #F04F94;
+            transform: translateY(-3px);
+          }
+          .profile-option.selected {
+            border-color: #F04F94;
+            background-color: #fff9f7;
+          }
+          .profile-emoji {
+            font-size: 40px;
+            margin-bottom: 10px;
+          }
+          .profile-upload {
+            margin-top: 20px;
+            text-align: center;
+          }
+          .notification-badge {
+            position: relative;
+            display: inline-block;
+          }
+          .notification-badge::after {
+            content: attr(data-count);
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #F51A0F;
+            color: white;
+            font-size: 12px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .notifications-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 300px;
+            background-color: white;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+          }
+          .notifications-panel.active {
+            display: block;
+            transform: translateX(0);
+          }
+          .notifications-header {
+            background-color: #F04F94;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .notifications-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+          }
+          .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .notification-item:hover {
+            background-color: #f9f9f9;
+          }
+          .notification-item.unread {
+            border-left: 3px solid #F04F94;
+          }
+          .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .notification-message {
+            font-size: 14px;
+            color: #666;
+          }
+          .notification-date {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+          }
+          .fish-stats {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+          }
+          .fish-stat {
+            background-color: rgba(255,255,255,0.2);
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+          }
+          .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+          }
+          .stat-value {
+            font-weight: bold;
+          }
+          .quick-stats {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+          }
+          .stat-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+          }
+          .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+          }
+          .stat-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #F0734F;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-weight: bold;
+          }
+          .maintenance-task {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+          }
+          .maintenance-task:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+          }
+          .task-info {
+            flex: 1;
+          }
+          .task-name {
+            font-weight: bold;
+            color: #F04F94;
+          }
+          .task-due {
+            font-size: 14px;
+            color: #666;
+          }
+          .task-badge {
+            background-color: #F05950;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+          }
+          .tank-log-entry {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+          }
+          .log-date {
+            font-weight: bold;
+            color: #F04F94;
+            margin-bottom: 8px;
+          }
+          .log-params {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+          }
+          .param {
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+          }
+          .param-label {
+            font-weight: bold;
+            color: #F0734F;
+          }
+          .log-notes {
+            font-style: italic;
+            color: #666;
+          }
+          .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #F04F94;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+          }
+          .add-button:hover {
+            transform: scale(1.1);
+            background-color: #ED4FF0;
+          }
+          
+          /* Gallery styles */
+          .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+          }
+          
+          .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+          }
+          
+          .gallery-image {
+            height: 200px;
+            overflow: hidden;
+          }
+          
+          .gallery-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+          }
+          
+          .gallery-item:hover .gallery-image img {
+            transform: scale(1.05);
+          }
+          
+          .gallery-info {
+            padding: 15px;
+            background-color: white;
+          }
+          
+          .gallery-title {
+            font-weight: bold;
+            color: #F04F94;
+            margin-bottom: 5px;
+          }
+          
+          .gallery-date {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+          }
+          
+          .gallery-notes {
+            font-style: italic;
+            color: #666;
+            font-size: 14px;
+          }
+          
+          /* Mobile responsive styles */
+          @media (max-width: 768px) {
+            header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            
+            nav {
+              margin-top: 15px;
+              flex-wrap: wrap;
+              gap: 10px;
+            }
+            
+            .nav-button {
+              font-size: 12px;
+              padding: 6px 10px;
+            }
+            
+            .fish-profile {
+              flex-direction: column;
+            }
+            
+            .gallery-grid {
+              grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .add-button {
+              bottom: 15px;
+              right: 15px;
+              width: 50px;
+              height: 50px;
+              font-size: 24px;
+            }
+            
+            .profile-picker-content {
+              width: 95%;
+            }
+            
+            .profile-options {
+              grid-template-columns: 1fr;
+            }
+          }
+          
+          /* Hamburger menu for mobile */
+          .menu-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+          }
+          
+          .menu-toggle span {
+            height: 3px;
+            width: 100%;
+            background-color: #F04F94;
+            border-radius: 3px;
+          }
+          
+          @media (max-width: 600px) {
+            .menu-toggle {
+              display: flex;
+            }
+            
+            nav {
+              display: none;
+              flex-direction: column;
+              width: 100%;
+            }
+            
+            nav.active {
+              display: flex;
+            }
+            
+            .nav-button {
+              width: 100%;
+              text-align: center;
+              margin-bottom: 5px;
+            }
+          }
+          
+          /* Form styles */
+          .form-content {
+            padding: 0 20px 20px 20px;
+          }
+          .form-group {
+            margin-bottom: 15px;
+          }
+          .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+          }
+          .form-group input[type="text"],
+          .form-group input[type="date"],
+          .form-group input[type="number"],
+          .form-group select,
+          .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+          }
+          .form-group textarea {
+            resize: vertical;
+          }
+          .form-group.checkbox {
+            display: flex;
+            align-items: center;
+          }
+          .form-group.checkbox input {
+            margin-right: 10px;
+          }
+          .form-group.checkbox label {
+            margin-bottom: 0;
+          }
+          .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+          }
+          .primary-button {
+            background-color: #F04F94;
+          }
+          
+          /* Add menu styles */
+          .add-menu {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 100;
+            width: 220px;
+            overflow: hidden;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+          }
+          
+          .add-menu.active {
+            display: block;
+            transform: translateY(0);
+            opacity: 1;
+          }
+          
+          .add-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+          }
+          
+          .add-menu-item:hover {
+            background-color: #f7f7f7;
+          }
+          
+          .add-menu-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #F0734F;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 20px;
+          }
+          
+          .add-menu-text {
+            font-weight: bold;
+            color: #444;
+          }
+          
+          .global-add {
+            z-index: 101;
+          }
+          
+          .global-add.active {
+            background-color: #ED4FF0;
+            transform: rotate(45deg);
+          }
+          
+          /* Chart styles */
+          .chart-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          }
+          
+          /* Mobile-specific styles */
+          @media (max-width: 600px) {
+            body {
+              padding: 10px;
+            }
+            
+            header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            
+            h1 {
+              margin-bottom: 15px;
+            }
+            
+            nav {
+              width: 100%;
+              overflow-x: auto;
+              padding-bottom: 10px;
+              flex-wrap: nowrap;
+              justify-content: flex-start;
+            }
+            
+            .nav-button {
+              flex-shrink: 0;
+              font-size: 0.9rem;
+              padding: 6px 10px;
+            }
+            
+            .fish-profile {
+              padding: 15px;
+            }
+            
+            .fish-avatar {
+              width: 80px;
+              height: 80px;
+              font-size: 30px;
+            }
+            
+            .fish-stats {
+              justify-content: space-between;
+            }
+            
+            .fish-stat {
+              margin-right: 5px;
+              font-size: 0.9rem;
+              flex-basis: calc(50% - 10px);
+              margin-bottom: 8px;
+              box-sizing: border-box;
+            }
+            
+            .gallery-grid, .notes-grid, .treatments-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .parameter-buttons {
+              flex-wrap: wrap;
+            }
+            
+            .parameter-button {
+              margin-bottom: 5px;
+              font-size: 0.8rem;
+            }
+            
+            .notification-badge::after {
+              top: -5px;
+              right: -5px;
+              width: 15px;
+              height: 15px;
+              font-size: 10px;
+            }
+            
+            .notifications-panel {
+              width: 85%;
+            }
+            
+            .add-form {
+              width: 95%;
+            }
+          }
+          
+          .parameter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+          }
+          
+          .parameter-button {
+            background-color: #f0f0f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+          }
+          
+          .parameter-button.active {
+            background-color: #F04F94;
+            color: white;
+          }
+          
+          /* Treatment Card Styles */
+          .treatments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .treatment-card {
+            position: relative;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            overflow: hidden;
+          }
+          
+          .treatment-active {
+            border-left: 4px solid #ED4FF0;
+          }
+          
+          .treatment-completed {
+            border-left: 4px solid #4CAF50;
+          }
+          
+          .treatment-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+          }
+          
+          .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+          }
+          
+          .status-badge.active {
+            background-color: #ED4FF0;
+          }
+          
+          .status-badge.completed {
+            background-color: #4CAF50;
+          }
+          
+          .treatment-header {
+            margin-bottom: 15px;
+            padding-right: 70px;
+          }
+          
+          .treatment-header h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+          }
+          
+          .treatment-condition {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+          }
+          
+          .treatment-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          
+          .treatment-dates {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          
+          .treatment-date, .treatment-dosage {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            padding: 5px 0;
+            border-bottom: 1px dashed #eee;
+          }
+          
+          .date-label, .dosage-label, .notes-label {
+            font-weight: bold;
+            color: #555;
+          }
+          
+          .treatment-notes {
+            margin-top: 10px;
+            padding-top: 5px;
+            border-top: 1px solid #eee;
+          }
+          
+          .notes-label {
+            margin-bottom: 5px;
+          }
+          
+          .notes-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #666;
+          }
+          
+          /* Notes styling */
+          .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+          }
+          
+          .note-card {
+            position: relative;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-left: 4px solid #F08F4F;
+          }
+          
+          .note-header {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+          }
+          
+          .note-header h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+          }
+          
+          .note-date {
+            font-size: 12px;
+            color: #777;
+          }
+          
+          .note-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+          }
+          
+          .note-content p {
+            margin: 0;
+          }
+          
+          /* Empty state styling */
+          .empty-state {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          
+          .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>Volt Betta Manager</h1>
+          <div class="menu-toggle" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <nav>
+            <button class="nav-button" onclick="showSection('home-section')">Home</button>
+            <button class="nav-button" onclick="showSection('tanklog-section')">Tank Log</button>
+            <button class="nav-button" onclick="showSection('maintenance-section')">Maintenance</button>
+            <button class="nav-button" onclick="showSection('plants-section')">Plants</button>
+            <button class="nav-button" onclick="showSection('treatments-section')">Treatments</button>
+            <button class="nav-button" onclick="showSection('gallery-section')">Gallery</button>
+            <button class="nav-button" onclick="showSection('notes-section')">Notes</button>
+            <div class="notification-badge" data-count="1" onclick="toggleNotifications()">
+              <button class="nav-button">📋</button>
+            </div>
+          </nav>
+        </header>
+        
+        <!-- Notification Panel -->
+        <div id="notifications-panel" class="notifications-panel">
+          <div class="notifications-header">
+            <h3>Notifications</h3>
+            <button class="notifications-close" onclick="toggleNotifications()">×</button>
+          </div>
+          <div id="notifications-list">
+            <!-- Notifications will be loaded here -->
+          </div>
+        </div>
+        
+        <!-- Profile Picture Picker -->
+        <div id="profile-picker" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Change Profile Picture</h3>
+              <button class="profile-picker-close" onclick="toggleProfilePicker()">×</button>
+            </div>
+            <div class="profile-options">
+              <!-- Profile options will be loaded here -->
+            </div>
+            <div class="profile-upload">
+              <p>Or upload your own image:</p>
+              <input type="file" id="profile-upload" accept="image/*">
+              <button onclick="uploadProfilePicture()">Upload</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Maintenance Task Form Modal -->
+        <div id="task-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Maintenance Task</h3>
+              <button class="profile-picker-close" onclick="hideTaskForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="task-name">Task Name:</label>
+                <input type="text" id="task-name" placeholder="e.g., Water Change" required>
+              </div>
+              <div class="form-group">
+                <label for="task-date">Due Date:</label>
+                <input type="date" id="task-date" required>
+              </div>
+              <div class="form-group">
+                <label for="task-recurring">Recurring:</label>
+                <select id="task-recurring">
+                  <option value="none">None</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="task-priority">Priority:</label>
+                <select id="task-priority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="task-notify" checked>
+                <label for="task-notify">Send Notification</label>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideTaskForm()">Cancel</button>
+                <button onclick="saveMaintenanceTask()" class="primary-button">Save Task</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tank Log Form Modal -->
+        <div id="log-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Tank Log</h3>
+              <button class="profile-picker-close" onclick="hideLogForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="log-date">Date:</label>
+                <input type="date" id="log-date" required>
+              </div>
+              <div class="form-group">
+                <label for="log-ammonia">Ammonia (ppm):</label>
+                <input type="number" id="log-ammonia" min="0" step="0.25" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-nitrite">Nitrite (ppm):</label>
+                <input type="number" id="log-nitrite" min="0" step="0.25" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-nitrate">Nitrate (ppm):</label>
+                <input type="number" id="log-nitrate" min="0" step="1" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label for="log-ph">pH:</label>
+                <input type="number" id="log-ph" min="0" step="0.1" placeholder="7.0">
+              </div>
+              <div class="form-group">
+                <label for="log-temp">Temperature (°F):</label>
+                <input type="number" id="log-temp" min="0" step="0.1" placeholder="78">
+              </div>
+              <div class="form-group">
+                <label for="log-notes">Notes:</label>
+                <textarea id="log-notes" rows="3" placeholder="Any observations..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideLogForm()">Cancel</button>
+                <button onclick="saveTankLog()" class="primary-button">Save Log</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Plant Form Modal -->
+        <div id="plant-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Plant</h3>
+              <button class="profile-picker-close" onclick="hidePlantForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="plant-name">Plant Name:</label>
+                <input type="text" id="plant-name" placeholder="e.g., Java Fern" required>
+              </div>
+              <div class="form-group">
+                <label for="plant-species">Species:</label>
+                <input type="text" id="plant-species" placeholder="Scientific name (optional)">
+              </div>
+              <div class="form-group">
+                <label for="plant-date">Date Added:</label>
+                <input type="date" id="plant-date" required>
+              </div>
+              <div class="form-group">
+                <label for="plant-care">Care Instructions:</label>
+                <textarea id="plant-care" rows="3" placeholder="Light, fertilizer, trimming needs..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hidePlantForm()">Cancel</button>
+                <button onclick="savePlant()" class="primary-button">Save Plant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Treatment Form Modal -->
+        <div id="treatment-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Treatment</h3>
+              <button class="profile-picker-close" onclick="hideTreatmentForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="treatment-name">Treatment Name:</label>
+                <input type="text" id="treatment-name" placeholder="e.g., Aquarium Salt" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-condition">Condition Treating:</label>
+                <input type="text" id="treatment-condition" placeholder="e.g., Fin Rot" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-start-date">Start Date:</label>
+                <input type="date" id="treatment-start-date" required>
+              </div>
+              <div class="form-group">
+                <label for="treatment-end-date">End Date:</label>
+                <input type="date" id="treatment-end-date">
+              </div>
+              <div class="form-group">
+                <label for="treatment-dosage">Dosage:</label>
+                <input type="text" id="treatment-dosage" placeholder="e.g., 1 tsp per gallon">
+              </div>
+              <div class="form-group">
+                <label for="treatment-notes">Notes:</label>
+                <textarea id="treatment-notes" rows="3" placeholder="Treatment observations..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideTreatmentForm()">Cancel</button>
+                <button onclick="saveTreatment()" class="primary-button">Save Treatment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Photo Form Modal -->
+        <div id="photo-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Photo</h3>
+              <button class="profile-picker-close" onclick="hidePhotoForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="photo-title">Photo Title:</label>
+                <input type="text" id="photo-title" placeholder="e.g., Volt's New Colors" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-date">Date Taken:</label>
+                <input type="date" id="photo-date" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-file">Select Photo:</label>
+                <input type="file" id="photo-file" accept="image/*" required>
+              </div>
+              <div class="form-group">
+                <label for="photo-notes">Description:</label>
+                <textarea id="photo-notes" rows="3" placeholder="Photo description..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hidePhotoForm()">Cancel</button>
+                <button onclick="savePhoto()" class="primary-button">Save Photo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Note Form Modal -->
+        <div id="note-form-modal" class="profile-picker">
+          <div class="profile-picker-content">
+            <div class="profile-picker-header">
+              <h3>Add New Note</h3>
+              <button class="profile-picker-close" onclick="hideNoteForm()">×</button>
+            </div>
+            <div class="form-content">
+              <div class="form-group">
+                <label for="note-title">Title:</label>
+                <input type="text" id="note-title" placeholder="e.g., Behavior Observation" required>
+              </div>
+              <div class="form-group">
+                <label for="note-date">Date:</label>
+                <input type="date" id="note-date" required>
+              </div>
+              <div class="form-group">
+                <label for="note-content">Content:</label>
+                <textarea id="note-content" rows="5" placeholder="Your notes..." required></textarea>
+              </div>
+              <div class="form-actions">
+                <button onclick="hideNoteForm()">Cancel</button>
+                <button onclick="saveNote()" class="primary-button">Save Note</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Home Section -->
+        <section id="home-section" class="content-section active">
+          <div class="fish-profile">
+            <div class="fish-profile-info">
+              <div class="fish-avatar" id="fish-avatar-container">
+                🐠
+              </div>
+              <h2>Volt</h2>
+              <p>Betta splendens - Veiltail</p>
+              
+              <div class="fish-stats">
+                <div class="fish-stat">
+                  <div class="stat-label">Age</div>
+                  <div class="stat-value">~8 months</div>
+                </div>
+                <div class="fish-stat">
+                  <div class="stat-label">Color</div>
+                  <div class="stat-value">Red/Blue</div>
+                </div>
+                <div class="fish-stat">
+                  <div class="stat-label">Tank</div>
+                  <div class="stat-value">3.5 gallon planted</div>
+                </div>
+                <div class="fish-stat">
+                  <div class="stat-label">Acquired</div>
+                  <div class="stat-value">April 5, 2025</div>
+                </div>
+                <div class="fish-stat">
+                  <div class="stat-label">Time with You</div>
+                  <div class="stat-value">13 days</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <h2>Quick Stats</h2>
+          <div class="quick-stats">
+            <div class="stat-item">
+              <div class="stat-icon">💧</div>
+              <div>
+                <div>Last Water Change</div>
+                <div><strong>6 days ago</strong></div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">🧪</div>
+              <div>
+                <div>Last Water Test</div>
+                <div><strong>Apr 10</strong></div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">📷</div>
+              <div>
+                <div>Photos Taken</div>
+                <div><strong>1 total</strong></div>
+              </div>
+            </div>
+          </div>
+          
+          <h2>Upcoming Maintenance</h2>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Test Water Parameters</div>
+                <div class="task-due">Due in Today • Weekly</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Water Change (25%)</div>
+                <div class="task-due">Due in 1 day • Weekly (Tuesday)</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Trim Plants</div>
+                <div class="task-due">Due in 3 days • Bi-weekly</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+          
+          <button style="width: 100%; margin-top: 15px;" onclick="showSection('maintenance-section')">View All Tasks</button>
+        </section>
+        
+        <!-- Tank Log Section -->
+        <section id="tanklog-section" class="content-section">
+          <h2>Tank Log</h2>
+          <p>Track water parameters and tank maintenance over time.</p>
+          
+          <!-- Chart Container -->
+          <div class="chart-container">
+            <div class="parameter-buttons">
+              <button class="parameter-button active" data-param="ammonia">Ammonia</button>
+              <button class="parameter-button" data-param="nitrite">Nitrite</button>
+              <button class="parameter-button" data-param="nitrate">Nitrate</button>
+              <button class="parameter-button" data-param="ph">pH</button>
+              <button class="parameter-button" data-param="temp">Temperature</button>
+            </div>
+            <canvas id="paramsChart"></canvas>
+          </div>
+          
+          
+            <div class="tank-log-entry">
+              <div class="log-date">Apr 10, 2025</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 5 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7.2</div>
+                <div class="param"><span class="param-label">Temp:</span> 78°F</div>
+              </div>
+              <div class="log-notes">Parameters looking good. Added 1mL of plant fertilizer.</div>
+            </div>
+          
+            <div class="tank-log-entry">
+              <div class="log-date">Apr 3, 2025</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 10 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7</div>
+                <div class="param"><span class="param-label">Temp:</span> 79°F</div>
+              </div>
+              <div class="log-notes">Did a 25% water change. Replaced filter media.</div>
+            </div>
+          
+            <div class="tank-log-entry">
+              <div class="log-date">Mar 27, 2025</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 15 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7.1</div>
+                <div class="param"><span class="param-label">Temp:</span> 78°F</div>
+              </div>
+              <div class="log-notes">Volt seems very active today. Rearranged plants slightly.</div>
+            </div>
+          
+          
+          <div class="add-button" onclick="showLogForm()">+</div>
+        </section>
+        
+        <!-- Maintenance Section -->
+        <section id="maintenance-section" class="content-section">
+          <h2>Maintenance Schedule</h2>
+          <p>Keep track of recurring tank maintenance tasks.</p>
+          
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Test Water Parameters</div>
+                <div class="task-due">Due in Today • Weekly • Last done: 7 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Water Change (25%)</div>
+                <div class="task-due">Due in 1 day • Weekly (Tuesday) • Last done: 6 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Trim Plants</div>
+                <div class="task-due">Due in 3 days • Bi-weekly • Last done: 11 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Clean Gravel</div>
+                <div class="task-due">Due in 6 days • Bi-weekly • Last done: 8 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Replace Filter Media</div>
+                <div class="task-due">Due in 22 days • Monthly • Last done: 8 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+          
+          <div class="add-button" onclick="showTaskForm()">+</div>
+        </section>
+        
+        <!-- Plants Section -->
+        <section id="plants-section" class="content-section">
+          <h2>Plant Care</h2>
+          <p>Track aquarium plants and their care requirements.</p>
+          
+          <p>No plants added yet. Add your first plant using the + button below.</p>
+          
+          <div class="add-button" onclick="showPlantForm()">+</div>
+        </section>
+        
+        <!-- Treatments Section -->
+        <section id="treatments-section" class="content-section">
+          <h2>Treatment Plans</h2>
+          <p>Track medication, supplements, and treatment plans for your fish.</p>
+          
+          
+            <div class="empty-state">
+              <div class="empty-icon">💊</div>
+              <p>No treatments added yet. Add your first treatment using the + button below.</p>
+            </div>
+          
+          
+          <div class="add-button" onclick="showTreatmentForm()">+</div>
+        </section>
+        
+        <!-- Gallery Section -->
+        <section id="gallery-section" class="content-section">
+          <h2>Photo Gallery</h2>
+          <p>Capture and save memories of your betta fish.</p>
+          
+          
+            <div class="gallery-grid">
+              
+                <div class="gallery-item">
+                  <div class="gallery-image">
+                    <img src="/uploads/photo-1744814105817-16362021.png" alt="test">
+                  </div>
+                  <div class="gallery-info">
+                    <div class="gallery-title">test</div>
+                    <div class="gallery-date">Apr 16, 2025</div>
+                    <div class="gallery-notes">hro</div>
+                  </div>
+                </div>
+              
+            </div>
+          
+          
+          <div class="add-button" onclick="showPhotoForm()">+</div>
+        </section>
+        
+        <!-- Notes Section -->
+        <section id="notes-section" class="content-section">
+          <h2>Notes</h2>
+          <p>Record observations and important information about your betta.</p>
+          
+          
+            <div class="empty-state">
+              <div class="empty-icon">📝</div>
+              <p>No notes added yet. Add your first note using the + button below.</p>
+            </div>
+          
+          
+          <div class="add-button" onclick="showNoteForm()">+</div>
+        </section>
+        
+        <!-- Features Section -->
+        <section id="features-section" class="content-section">
+          <h2>App Features</h2>
+          
+          <div class="feature">
+            <h3>Home Dashboard</h3>
+            <p>Shows fish profile with key information like age, variant, and tank size. Also displays quick stats and upcoming maintenance tasks.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Tank Log</h3>
+            <p>Record and track water parameters, maintenance history, and water change schedules. Monitor ammonia, nitrite, nitrate, pH, and temperature over time.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Maintenance</h3>
+            <p>Schedule and manage recurring tank maintenance tasks with notifications. Never miss a water change or filter replacement again.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Plants</h3>
+            <p>Track aquarium plants, their care requirements, and growth progress. Includes reminders for fertilizer dosing and pruning needs.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Treatments</h3>
+            <p>Document health issues, medications, and treatment progress for your betta fish. Keep a record of symptoms, medications, and outcomes.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Gallery</h3>
+            <p>Store and organize photos of your betta fish to track growth and color changes over time. Create chronological visual documentation.</p>
+          </div>
+          
+          <div class="feature">
+            <h3>Notes</h3>
+            <p>Keep journal entries and general observations about your betta fish and tank. Tag entries for easy organization and search.</p>
+          </div>
+        </section>
+        
+        <!-- Global Add Button with Menu -->
+        <div class="add-button global-add" title="Add New Entry" onclick="toggleAddMenu()">+</div>
+        
+        <!-- Add Menu Options -->
+        <div id="add-menu" class="add-menu">
+          <div class="add-menu-item" onclick="showLogForm()">
+            <div class="add-menu-icon">🧪</div>
+            <div class="add-menu-text">Tank Log</div>
+          </div>
+          <div class="add-menu-item" onclick="showTaskForm()">
+            <div class="add-menu-icon">📋</div>
+            <div class="add-menu-text">Maintenance</div>
+          </div>
+          <div class="add-menu-item" onclick="showPlantForm()">
+            <div class="add-menu-icon">🌿</div>
+            <div class="add-menu-text">Plant</div>
+          </div>
+          <div class="add-menu-item" onclick="showTreatmentForm()">
+            <div class="add-menu-icon">💊</div>
+            <div class="add-menu-text">Treatment</div>
+          </div>
+          <div class="add-menu-item" onclick="showPhotoForm()">
+            <div class="add-menu-icon">📷</div>
+            <div class="add-menu-text">Photo</div>
+          </div>
+          <div class="add-menu-item" onclick="showNoteForm()">
+            <div class="add-menu-icon">📝</div>
+            <div class="add-menu-text">Note</div>
+          </div>
+        </div>
+        
+        <script>
+          function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+              section.classList.remove('active');
+            });
+            
+            // Show the selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // For gallery section, check if we have any photos
+            if (sectionId === 'gallery-section') {
+              // This section can be enhanced to fetch latest photos if needed
+              console.log('Showing gallery section');
+            }
+          }
+          
+          // Initialize profile pictures array from server
+          const profilePictures = [{"id":1,"name":"Volt Default","url":"🐠","isEmoji":true},{"id":2,"name":"Betta Red","url":"🐟","isEmoji":true},{"id":3,"name":"Betta Blue","url":"🐡","isEmoji":true},{"id":4,"name":"Custom Upload","url":"","isEmoji":false}];
+          
+          // Initialize variables for profile management
+          let currentProfilePic = {
+            id: 1,
+            url: '🐠',
+            name: 'Current Profile', 
+            isEmoji: true
+          };
+          
+          // Initialize the profile picture picker
+          function initProfilePicker() {
+            const profileOptions = document.querySelector('.profile-options');
+            profileOptions.innerHTML = '';
+            
+            // Create options from the profile pictures array
+            profilePictures.forEach(pic => {
+              const option = document.createElement('div');
+              option.className = 'profile-option' + ((pic.id === 1 && currentProfilePic.isEmoji && pic.url === currentProfilePic.url) ? ' selected' : '');
+              option.setAttribute('data-id', pic.id);
+              
+              if (pic.isEmoji) {
+                const emoji = document.createElement('div');
+                emoji.className = 'profile-emoji';
+                emoji.textContent = pic.url;
+                option.appendChild(emoji);
+              } else if (pic.url) {
+                const img = document.createElement('img');
+                img.src = pic.url;
+                img.alt = pic.name;
+                img.style.width = '80px';
+                img.style.height = '80px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                option.appendChild(img);
+              } else {
+                const placeholder = document.createElement('div');
+                placeholder.style.width = '80px';
+                placeholder.style.height = '80px';
+                placeholder.style.backgroundColor = '#eee';
+                placeholder.style.borderRadius = '50%';
+                placeholder.style.display = 'flex';
+                placeholder.style.justifyContent = 'center';
+                placeholder.style.alignItems = 'center';
+                placeholder.textContent = '📷';
+                option.appendChild(placeholder);
+              }
+              
+              const name = document.createElement('div');
+              name.textContent = pic.name;
+              option.appendChild(name);
+              
+              option.addEventListener('click', function() {
+                // Remove selected class from all options
+                document.querySelectorAll('.profile-option').forEach(opt => {
+                  opt.classList.remove('selected');
+                });
+                
+                // Add selected class to this option
+                option.classList.add('selected');
+                
+                // Update current profile picture
+                currentProfilePic = profilePictures.find(p => p.id === pic.id);
+                
+                // Update the avatar in the UI
+                if (currentProfilePic.isEmoji) {
+                  document.querySelector('.fish-avatar').innerHTML = currentProfilePic.url;
+                } else if (currentProfilePic.url) {
+                  document.querySelector('.fish-avatar').innerHTML = '<img src="' + currentProfilePic.url + '" alt="' + currentProfilePic.name + '" />';
+                }
+              });
+              
+              profileOptions.appendChild(option);
+            });
+          }
+          
+          // Toggle profile picture picker
+          function toggleProfilePicker() {
+            const picker = document.getElementById('profile-picker');
+            picker.classList.toggle('active');
+            
+            if (picker.classList.contains('active')) {
+              initProfilePicker();
+            }
+          }
+          
+          // Upload profile picture
+          function uploadProfilePicture() {
+            const fileInput = document.getElementById('profile-upload');
+            if (fileInput.files && fileInput.files[0]) {
+              const formData = new FormData();
+              formData.append('profile', fileInput.files[0]);
+              formData.append('fishId', 1); // Default to Volt
+              
+              fetch('/api/upload-profile-image', {
+                method: 'POST',
+                body: formData
+              })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  alert('Profile picture uploaded successfully!');
+                  
+                  // Update custom upload option
+                  const customPic = profilePictures.find(p => p.id === 4);
+                  customPic.url = data.url;
+                  customPic.isEmoji = false;
+                  
+                  // Select the custom option
+                  document.querySelector('[data-id="4"]').click();
+                  
+                  // Close the picker
+                  toggleProfilePicker();
+                  
+                  // Refresh page to show the new profile picture
+                  setTimeout(() => {
+                    location.reload();
+                  }, 1000);
+                } else {
+                  alert('Error uploading profile picture: ' + data.message);
+                }
+              })
+              .catch(error => {
+                console.error('Error uploading profile picture:', error);
+                alert('Error uploading profile picture. Please try again.');
+              });
+            } else {
+              alert('Please select a file first.');
+            }
+          }
+          
+          // Initialize notifications
+          function loadNotifications() {
+            const notificationsList = document.getElementById('notifications-list');
+            notificationsList.innerHTML = '';
+            
+            // Get notifications from the server
+            fetch('/api/notifications')
+              .then(response => response.json())
+              .then(notifications => {
+                // Get unread count
+                const unreadCount = notifications.filter(n => !n.read).length;
+                document.querySelector('.notification-badge').setAttribute('data-count', unreadCount);
+                
+                if (unreadCount === 0) {
+                  document.querySelector('.notification-badge').style.display = 'none';
+                } else {
+                  document.querySelector('.notification-badge').style.display = 'inline-block';
+                }
+                
+                // Create notification items
+                notifications.forEach(notification => {
+                  const item = document.createElement('div');
+                  item.className = 'notification-item' + (notification.read ? '' : ' unread');
+                  item.setAttribute('data-id', notification.id);
+                  
+                  const title = document.createElement('div');
+                  title.className = 'notification-title';
+                  title.textContent = notification.title;
+                  
+                  const message = document.createElement('div');
+                  message.className = 'notification-message';
+                  message.textContent = notification.message;
+                  
+                  const date = document.createElement('div');
+                  date.className = 'notification-date';
+                  date.textContent = new Date(notification.date).toLocaleDateString();
+                  
+                  item.appendChild(title);
+                  item.appendChild(message);
+                  item.appendChild(date);
+                  
+                  item.addEventListener('click', function() {
+                    // Mark notification as read via API
+                    fetch('/api/mark-notification-read', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ id: notification.id })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.success) {
+                        loadNotifications();
+                      }
+                    });
+                    
+                    // Show alert with notification message
+                    alert(notification.message);
+                  });
+                  
+                  notificationsList.appendChild(item);
+                });
+              })
+              .catch(error => {
+                console.error('Error loading notifications:', error);
+              });
+          }
+          
+          // Toggle notifications panel
+          function toggleNotifications() {
+            const panel = document.getElementById('notifications-panel');
+            panel.classList.toggle('active');
+            
+            if (panel.classList.contains('active')) {
+              loadNotifications();
+            }
+          }
+          
+          // Task form modal
+          function showTaskForm() {
+            const taskFormModal = document.getElementById('task-form-modal');
+            taskFormModal.classList.add('active');
+          }
+          
+          function hideTaskForm() {
+            const taskFormModal = document.getElementById('task-form-modal');
+            taskFormModal.classList.remove('active');
+          }
+          
+          // Save new maintenance task
+          function saveMaintenanceTask() {
+            const taskName = document.getElementById('task-name').value;
+            const taskDate = document.getElementById('task-date').value;
+            const taskRecurring = document.getElementById('task-recurring').value;
+            const taskPriority = document.getElementById('task-priority').value;
+            const taskNotify = document.getElementById('task-notify').checked;
+            
+            if (!taskName || !taskDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare task data
+            const taskData = {
+              fishId: 1, // Default to Volt
+              task: taskName,
+              dueDate: taskDate,
+              recurring: taskRecurring,
+              priority: taskPriority,
+              notify: taskNotify,
+              lastDone: new Date().toISOString()
+            };
+            
+            // Send to server
+            fetch('/api/maintenance', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(taskData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Task added successfully!');
+                hideTaskForm();
+                // Refresh page to show new task
+                location.reload();
+              } else {
+                alert('Error adding task: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding task:', error);
+              alert('Error adding task. Please try again.');
+            });
+          }
+          
+          // Add button click handler
+          document.querySelector('.add-button').addEventListener('click', function() {
+            const activeSectionId = document.querySelector('.content-section.active').id;
+            
+            switch(activeSectionId) {
+              case 'maintenance-section':
+                showTaskForm();
+                break;
+              case 'tanklog-section':
+                showLogForm();
+                break;
+              case 'plants-section':
+                showPlantForm();
+                break;
+              case 'treatments-section':
+                showTreatmentForm();
+                break;
+              case 'gallery-section':
+                showPhotoForm();
+                break;
+              case 'notes-section':
+                showNoteForm();
+                break;
+              default:
+                alert('Add new entry (Feature coming soon for this section)');
+            }
+          });
+          
+          // Tank Log form functions
+          function showLogForm() {
+            const logFormModal = document.getElementById('log-form-modal');
+            logFormModal.classList.add('active');
+          }
+          
+          function hideLogForm() {
+            const logFormModal = document.getElementById('log-form-modal');
+            logFormModal.classList.remove('active');
+          }
+          
+          function saveTankLog() {
+            const logDate = document.getElementById('log-date').value;
+            const logAmmonia = document.getElementById('log-ammonia').value;
+            const logNitrite = document.getElementById('log-nitrite').value;
+            const logNitrate = document.getElementById('log-nitrate').value;
+            const logPh = document.getElementById('log-ph').value;
+            const logTemp = document.getElementById('log-temp').value;
+            const logNotes = document.getElementById('log-notes').value;
+            
+            if (!logDate) {
+              alert('Please select a date.');
+              return;
+            }
+            
+            // Prepare log data
+            const logData = {
+              fishId: 1, // Default to Volt
+              date: logDate,
+              ammonia: logAmmonia || '0',
+              nitrite: logNitrite || '0',
+              nitrate: logNitrate || '0',
+              ph: logPh || '7.0',
+              temp: logTemp || '78',
+              notes: logNotes || ''
+            };
+            
+            // Send to server
+            fetch('/api/tank-logs', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(logData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Tank log added successfully!');
+                hideLogForm();
+                // Refresh page to show new log
+                location.reload();
+              } else {
+                alert('Error adding tank log: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding tank log:', error);
+              alert('Error adding tank log. Please try again.');
+            });
+          }
+          
+          // Plant form functions
+          function showPlantForm() {
+            const plantFormModal = document.getElementById('plant-form-modal');
+            plantFormModal.classList.add('active');
+          }
+          
+          function hidePlantForm() {
+            const plantFormModal = document.getElementById('plant-form-modal');
+            plantFormModal.classList.remove('active');
+          }
+          
+          function savePlant() {
+            const plantName = document.getElementById('plant-name').value;
+            const plantSpecies = document.getElementById('plant-species').value;
+            const plantDate = document.getElementById('plant-date').value;
+            const plantCare = document.getElementById('plant-care').value;
+            
+            if (!plantName || !plantDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare plant data
+            const plantData = {
+              fishId: 1, // Default to Volt's tank
+              name: plantName,
+              species: plantSpecies,
+              dateAdded: plantDate,
+              careInstructions: plantCare
+            };
+            
+            // Send to server
+            fetch('/api/plants', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(plantData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Plant added successfully!');
+                hidePlantForm();
+                // Refresh page to show new plant
+                location.reload();
+              } else {
+                alert('Error adding plant: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding plant:', error);
+              alert('Error adding plant. Please try again.');
+            });
+          }
+          
+          // Treatment form functions
+          function showTreatmentForm() {
+            const treatmentFormModal = document.getElementById('treatment-form-modal');
+            treatmentFormModal.classList.add('active');
+          }
+          
+          function hideTreatmentForm() {
+            const treatmentFormModal = document.getElementById('treatment-form-modal');
+            treatmentFormModal.classList.remove('active');
+          }
+          
+          function saveTreatment() {
+            const treatmentName = document.getElementById('treatment-name').value;
+            const treatmentCondition = document.getElementById('treatment-condition').value;
+            const treatmentStartDate = document.getElementById('treatment-start-date').value;
+            const treatmentEndDate = document.getElementById('treatment-end-date').value;
+            const treatmentDosage = document.getElementById('treatment-dosage').value;
+            const treatmentNotes = document.getElementById('treatment-notes').value;
+            
+            if (!treatmentName || !treatmentCondition || !treatmentStartDate) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare treatment data
+            const treatmentData = {
+              fishId: 1, // Default to Volt
+              name: treatmentName,
+              condition: treatmentCondition,
+              startDate: treatmentStartDate,
+              endDate: treatmentEndDate || null,
+              dosage: treatmentDosage,
+              notes: treatmentNotes
+            };
+            
+            // Send to server
+            fetch('/api/treatments', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(treatmentData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Treatment added successfully!');
+                hideTreatmentForm();
+                // Refresh page to show new treatment
+                location.reload();
+              } else {
+                alert('Error adding treatment: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding treatment:', error);
+              alert('Error adding treatment. Please try again.');
+            });
+          }
+          
+          // Photo form functions
+          function showPhotoForm() {
+            const photoFormModal = document.getElementById('photo-form-modal');
+            photoFormModal.classList.add('active');
+          }
+          
+          function hidePhotoForm() {
+            const photoFormModal = document.getElementById('photo-form-modal');
+            photoFormModal.classList.remove('active');
+          }
+          
+          function savePhoto() {
+            const photoTitle = document.getElementById('photo-title').value;
+            const photoDate = document.getElementById('photo-date').value;
+            const photoNotes = document.getElementById('photo-notes').value;
+            const photoFile = document.getElementById('photo-file').files[0];
+            
+            if (!photoTitle || !photoDate || !photoFile) {
+              alert('Please fill in all required fields and select a file.');
+              return;
+            }
+            
+            // Prepare form data for file upload
+            const formData = new FormData();
+            formData.append('title', photoTitle);
+            formData.append('date', photoDate);
+            formData.append('description', photoNotes);
+            formData.append('fishId', 1); // Default to Volt
+            formData.append('photo', photoFile);
+            
+            // Send to server
+            fetch('/api/photos', {
+              method: 'POST',
+              body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Photo added successfully!');
+                hidePhotoForm();
+                
+                // Show the gallery section
+                showSection('gallery-section');
+                
+                // Refresh page to show new photo (need to fully reload to get updated data)
+                setTimeout(() => {
+                  location.reload();
+                }, 500);
+              } else {
+                alert('Error adding photo: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding photo:', error);
+              alert('Error adding photo. Please try again.');
+            });
+          }
+          
+          // Note form functions
+          function showNoteForm() {
+            const noteFormModal = document.getElementById('note-form-modal');
+            noteFormModal.classList.add('active');
+          }
+          
+          function hideNoteForm() {
+            const noteFormModal = document.getElementById('note-form-modal');
+            noteFormModal.classList.remove('active');
+          }
+          
+          function saveNote() {
+            const noteTitle = document.getElementById('note-title').value;
+            const noteDate = document.getElementById('note-date').value;
+            const noteContent = document.getElementById('note-content').value;
+            
+            if (!noteTitle || !noteDate || !noteContent) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+            
+            // Prepare note data
+            const noteData = {
+              fishId: 1, // Default to Volt
+              title: noteTitle,
+              date: noteDate,
+              content: noteContent
+            };
+            
+            // Send to server
+            fetch('/api/notes', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(noteData)
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Note added successfully!');
+                hideNoteForm();
+                // Refresh page to show new note
+                location.reload();
+              } else {
+                alert('Error adding note: ' + data.message);
+              }
+            })
+            .catch(error => {
+              console.error('Error adding note:', error);
+              alert('Error adding note. Please try again.');
+            });
+          }
+          
+          // Toggle mobile menu
+          function toggleMenu() {
+            document.querySelector('nav').classList.toggle('active');
+          }
+          
+          // Toggle add menu
+          function toggleAddMenu() {
+            const addMenu = document.getElementById('add-menu');
+            addMenu.classList.toggle('active');
+            
+            // Toggle active state on the plus button
+            document.querySelector('.global-add').classList.toggle('active');
+            
+            // Close the menu when clicking outside
+            if (addMenu.classList.contains('active')) {
+              setTimeout(() => {
+                document.addEventListener('click', closeAddMenuOnClickOutside);
+              }, 100);
+            }
+          }
+          
+          // Close add menu when clicking outside
+          function closeAddMenuOnClickOutside(event) {
+            const addMenu = document.getElementById('add-menu');
+            const addButton = document.querySelector('.global-add');
+            
+            if (!addMenu.contains(event.target) && event.target !== addButton) {
+              addMenu.classList.remove('active');
+              addButton.classList.remove('active');
+              document.removeEventListener('click', closeAddMenuOnClickOutside);
+            }
+          }
+          
+          // Initialize water parameter chart
+          let waterParamsChart = null;
+          
+          function initializeParamsChart() {
+            const ctx = document.getElementById('paramsChart').getContext('2d');
+            
+            // Get water parameter data from tank logs
+            const tankLogs = [{"id":1,"date":"2025-04-10","ammonia":"0","nitrite":"0","nitrate":"5","ph":"7.2","temp":"78","notes":"Parameters looking good. Added 1mL of plant fertilizer."},{"id":2,"date":"2025-04-03","ammonia":"0","nitrite":"0","nitrate":"10","ph":"7","temp":"79","notes":"Did a 25% water change. Replaced filter media."},{"id":3,"date":"2025-03-27","ammonia":"0","nitrite":"0","nitrate":"15","ph":"7.1","temp":"78","notes":"Volt seems very active today. Rearranged plants slightly."}];
+            
+            // Sort logs by date (oldest to newest)
+            tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Extract dates and parameter values
+            const labels = tankLogs.map(log => new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const ammoniaData = tankLogs.map(log => log.ammonia);
+            const nitriteData = tankLogs.map(log => log.nitrite);
+            const nitrateData = tankLogs.map(log => log.nitrate);
+            const phData = tankLogs.map(log => log.ph);
+            const tempData = tankLogs.map(log => log.temp);
+            
+            // Initialize chart
+            waterParamsChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Ammonia (ppm)',
+                  data: ammoniaData,
+                  borderColor: '#F04F94',
+                  backgroundColor: 'rgba(240, 79, 148, 0.1)',
+                  borderWidth: 2,
+                  tension: 0.3,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                  tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }
+            });
+          }
+          
+          // Handle parameter button clicks
+          function setupParamButtons() {
+            const buttons = document.querySelectorAll('.parameter-button');
+            const tankLogs = [{"id":1,"date":"2025-04-10","ammonia":"0","nitrite":"0","nitrate":"5","ph":"7.2","temp":"78","notes":"Parameters looking good. Added 1mL of plant fertilizer."},{"id":2,"date":"2025-04-03","ammonia":"0","nitrite":"0","nitrate":"10","ph":"7","temp":"79","notes":"Did a 25% water change. Replaced filter media."},{"id":3,"date":"2025-03-27","ammonia":"0","nitrite":"0","nitrate":"15","ph":"7.1","temp":"78","notes":"Volt seems very active today. Rearranged plants slightly."}];
+            
+            // Sort logs by date (oldest to newest)
+            tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Extract dates and parameter values
+            const labels = tankLogs.map(log => new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            buttons.forEach(button => {
+              button.addEventListener('click', function() {
+                // Update active button
+                buttons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Get selected parameter
+                const param = this.getAttribute('data-param');
+                let data, color, label;
+                
+                // Set data based on selected parameter
+                switch(param) {
+                  case 'ammonia':
+                    data = tankLogs.map(log => log.ammonia);
+                    color = '#F04F94';
+                    label = 'Ammonia (ppm)';
+                    break;
+                  case 'nitrite':
+                    data = tankLogs.map(log => log.nitrite);
+                    color = '#F0734F';
+                    label = 'Nitrite (ppm)';
+                    break;
+                  case 'nitrate':
+                    data = tankLogs.map(log => log.nitrate);
+                    color = '#F05950';
+                    label = 'Nitrate (ppm)';
+                    break;
+                  case 'ph':
+                    data = tankLogs.map(log => log.ph);
+                    color = '#ED4FF0';
+                    label = 'pH';
+                    break;
+                  case 'temp':
+                    data = tankLogs.map(log => log.temp);
+                    color = '#F08F4F';
+                    label = 'Temperature (°F)';
+                    break;
+                }
+                
+                // Update chart
+                waterParamsChart.data.datasets[0].data = data;
+                waterParamsChart.data.datasets[0].label = label;
+                waterParamsChart.data.datasets[0].borderColor = color;
+                waterParamsChart.data.datasets[0].backgroundColor = color.replace(')', ', 0.1)').replace('rgb', 'rgba');
+                waterParamsChart.update();
+              });
+            });
+          }
+          
+          // Initialize the app
+          document.addEventListener('DOMContentLoaded', function() {
+            // Load notifications
+            loadNotifications();
+            
+            // Initialize water parameters chart if we have any tank logs
+            if (document.getElementById('paramsChart')) {
+              initializeParamsChart();
+              setupParamButtons();
+            }
+            
+            // Set up fish avatar click handler
+            document.querySelector('.fish-avatar').addEventListener('click', toggleProfilePicker);
+            
+            // Set the date inputs to today's date by default
+            const today = new Date().toISOString().split('T')[0];
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+              input.value = today;
+            });
+            
+            // Close menu when a section is selected on mobile
+            const navButtons = document.querySelectorAll('.nav-button');
+            navButtons.forEach(button => {
+              button.addEventListener('click', function() {
+                if (window.innerWidth <= 600) {
+                  document.querySelector('nav').classList.remove('active');
+                }
+              });
+            });
+          });
+          
+          // Check if running inside the Android app
+          document.addEventListener('DOMContentLoaded', function() {
+            // If running in Android app, customize UI
+            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.isRunningInAndroid()) {
+              console.log('Running in Android WebView app!');
+              
+              // Let Android know we've loaded successfully
+              AndroidBridge.showToast('Volt Betta Manager loaded successfully');
+              
+              // Add app version indicator
+              const deviceInfo = AndroidBridge.getDeviceInfo();
+              const versionElement = document.createElement('div');
+              versionElement.classList.add('device-info');
+              versionElement.textContent = 'Running on ' + deviceInfo;
+              versionElement.style.position = 'fixed';
+              versionElement.style.bottom = '5px';
+              versionElement.style.left = '5px';
+              versionElement.style.fontSize = '10px';
+              versionElement.style.color = '#666';
+              document.body.appendChild(versionElement);
+              
+              // Handle external links properly in Android
+              document.querySelectorAll('a[target="_blank"]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  AndroidBridge.openExternalLink(this.href);
+                });
+              });
+            }
+          });
+        </script>
+      </body>
+    </html>
+  
