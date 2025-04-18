@@ -574,6 +574,7 @@ app.get('/', async (req, res) => {
     <html>
       <head>
         <title>Volt Betta Manager App</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
           body {
@@ -1253,6 +1254,87 @@ app.get('/', async (req, res) => {
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          }
+          
+          /* Mobile-specific styles */
+          @media (max-width: 600px) {
+            body {
+              padding: 10px;
+            }
+            
+            header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            
+            h1 {
+              margin-bottom: 15px;
+            }
+            
+            nav {
+              width: 100%;
+              overflow-x: auto;
+              padding-bottom: 10px;
+              flex-wrap: nowrap;
+              justify-content: flex-start;
+            }
+            
+            .nav-button {
+              flex-shrink: 0;
+              font-size: 0.9rem;
+              padding: 6px 10px;
+            }
+            
+            .fish-profile {
+              padding: 15px;
+            }
+            
+            .fish-avatar {
+              width: 80px;
+              height: 80px;
+              font-size: 30px;
+            }
+            
+            .fish-stats {
+              justify-content: space-between;
+            }
+            
+            .fish-stat {
+              margin-right: 5px;
+              font-size: 0.9rem;
+              flex-basis: calc(50% - 10px);
+              margin-bottom: 8px;
+              box-sizing: border-box;
+            }
+            
+            .gallery-grid, .notes-grid, .treatments-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .parameter-buttons {
+              flex-wrap: wrap;
+            }
+            
+            .parameter-button {
+              margin-bottom: 5px;
+              font-size: 0.8rem;
+            }
+            
+            .notification-badge::after {
+              top: -5px;
+              right: -5px;
+              width: 15px;
+              height: 15px;
+              font-size: 10px;
+            }
+            
+            .notifications-panel {
+              width: 85%;
+            }
+            
+            .add-form {
+              width: 95%;
+            }
           }
           
           .parameter-buttons {
