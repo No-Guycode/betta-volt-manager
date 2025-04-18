@@ -1,582 +1,9 @@
-// Script to start the Expo app on port 5000
-const express = require('express');
-const app = express();
-const port = 5000;
-const path = require('path');
-const db = require('./database/db');
-const controllers = require('./database/controllers');
 
-// Initialize database
-async function initDatabase() {
-  try {
-    // Sync database tables
-    await db.syncDatabase();
-    
-    // Initialize with sample data if needed
-    await db.initializeWithSampleData();
-    
-    console.log('Database initialized successfully');
-  } catch (error) {
-    console.error('Error initializing database:', error);
-  }
-}
-
-// Initialize the database
-initDatabase();
-
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.json());
-
-// Set up multer for file uploads
-const multer = require('multer');
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, 'uploads'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    // Accept images only
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
-      return cb(new Error('Only image files are allowed!'), false);
-    }
-    cb(null, true);
-  }
-});
-
-// Store default avatar options
-const profilePictures = [
-  { id: 1, name: 'Volt Default', url: '🐠', isEmoji: true },
-  { id: 2, name: 'Betta Red', url: '🐟', isEmoji: true },
-  { id: 3, name: 'Betta Blue', url: '🐡', isEmoji: true },
-  { id: 4, name: 'Custom Upload', url: '', isEmoji: false }
-];
-
-// Will be set from database in frontend
-
-// API endpoints
-// Get all notifications
-app.get('/api/notifications', async (req, res) => {
-  try {
-    // Default to fish ID 1 (Volt) for this prototype
-    const fishId = 1;
-    const notifications = await controllers.NotificationController.getAllForFish(fishId);
-    res.json(notifications);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ success: false, message: 'Error fetching notifications' });
-  }
-});
-
-// Mark notification as read
-app.post('/api/mark-notification-read', async (req, res) => {
-  try {
-    const { id } = req.body;
-    const result = await controllers.NotificationController.markAsRead(id);
-    
-    if (result) {
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ success: false, message: 'Notification not found' });
-    }
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ success: false, message: 'Error marking notification as read' });
-  }
-});
-
-// Get fish profile
-app.get('/api/fish/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const fish = await controllers.FishController.getById(id);
-    
-    if (fish) {
-      res.json(fish);
-    } else {
-      res.status(404).json({ success: false, message: 'Fish profile not found' });
-    }
-  } catch (error) {
-    console.error('Error fetching fish profile:', error);
-    res.status(500).json({ success: false, message: 'Error fetching fish profile' });
-  }
-});
-
-// Update fish profile
-app.put('/api/fish/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const fishData = req.body;
-    const updatedFish = await controllers.FishController.update(id, fishData);
-    
-    if (updatedFish) {
-      res.json({ success: true, fish: updatedFish });
-    } else {
-      res.status(404).json({ success: false, message: 'Fish profile not found' });
-    }
-  } catch (error) {
-    console.error('Error updating fish profile:', error);
-    res.status(500).json({ success: false, message: 'Error updating fish profile' });
-  }
-});
-
-// Update profile picture - emoji only
-app.post('/api/upload-profile', async (req, res) => {
-  try {
-    const { fishId, profilePicture, isPictureEmoji } = req.body;
-    
-    if (isPictureEmoji) {
-      // For emoji profiles, just save the emoji
-      const updatedFish = await controllers.FishController.updateProfilePicture(
-        fishId || 1, // Default to fish ID 1 (Volt) for this prototype
-        profilePicture,
-        true
-      );
-      
-      if (updatedFish) {
-        res.json({ success: true, fish: updatedFish });
-      } else {
-        res.status(404).json({ success: false, message: 'Fish profile not found' });
-      }
-    } else {
-      // For non-emoji profiles, we'll handle in the file upload endpoint
-      res.status(400).json({ success: false, message: 'Use /api/upload-profile-image for file uploads' });
-    }
-  } catch (error) {
-    console.error('Error updating profile picture:', error);
-    res.status(500).json({ success: false, message: 'Error updating profile picture' });
-  }
-});
-
-// Upload profile picture image
-app.post('/api/upload-profile-image', upload.single('profile'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-    
-    const fishId = req.body.fishId || 1; // Default to fish ID 1 (Volt) for this prototype
-    const profilePicture = `/uploads/${req.file.filename}`;
-    
-    const updatedFish = await controllers.FishController.updateProfilePicture(
-      fishId,
-      profilePicture,
-      false // Not an emoji
-    );
-    
-    if (updatedFish) {
-      res.json({ 
-        success: true, 
-        fish: updatedFish,
-        url: profilePicture
-      });
-    } else {
-      res.status(404).json({ success: false, message: 'Fish profile not found' });
-    }
-  } catch (error) {
-    console.error('Error uploading profile picture:', error);
-    res.status(500).json({ success: false, message: 'Error uploading profile picture' });
-  }
-});
-
-// Get maintenance tasks
-app.get('/api/maintenance/:fishId', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const tasks = await controllers.MaintenanceController.getAllForFish(fishId);
-    res.json(tasks);
-  } catch (error) {
-    console.error('Error fetching maintenance tasks:', error);
-    res.status(500).json({ success: false, message: 'Error fetching maintenance tasks' });
-  }
-});
-
-// Get upcoming maintenance tasks
-app.get('/api/maintenance/:fishId/upcoming', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const { days } = req.query;
-    const tasks = await controllers.MaintenanceController.getUpcoming(fishId, days || 7);
-    res.json(tasks);
-  } catch (error) {
-    console.error('Error fetching upcoming maintenance tasks:', error);
-    res.status(500).json({ success: false, message: 'Error fetching upcoming maintenance tasks' });
-  }
-});
-
-// Mark maintenance task as done
-app.post('/api/maintenance/:id/done', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedTask = await controllers.MaintenanceController.markAsDone(id);
-    
-    if (updatedTask) {
-      res.json({ success: true, task: updatedTask });
-    } else {
-      res.status(404).json({ success: false, message: 'Maintenance task not found' });
-    }
-  } catch (error) {
-    console.error('Error marking maintenance task as done:', error);
-    res.status(500).json({ success: false, message: 'Error marking maintenance task as done' });
-  }
-});
-
-// Add new maintenance task
-app.post('/api/maintenance', async (req, res) => {
-  try {
-    const taskData = req.body;
-    const newTask = await controllers.MaintenanceController.create(taskData);
-    res.status(201).json({ success: true, task: newTask });
-  } catch (error) {
-    console.error('Error creating maintenance task:', error);
-    res.status(500).json({ success: false, message: 'Error creating maintenance task' });
-  }
-});
-
-// Get tank logs
-app.get('/api/tank-logs/:fishId', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const logs = await controllers.TankLogController.getAllForFish(fishId);
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching tank logs:', error);
-    res.status(500).json({ success: false, message: 'Error fetching tank logs' });
-  }
-});
-
-// Add tank log
-app.post('/api/tank-logs', async (req, res) => {
-  try {
-    const logData = req.body;
-    const newLog = await controllers.TankLogController.create(logData);
-    res.status(201).json({ success: true, log: newLog });
-  } catch (error) {
-    console.error('Error creating tank log:', error);
-    res.status(500).json({ success: false, message: 'Error creating tank log' });
-  }
-});
-
-// Get plants
-app.get('/api/plants', async (req, res) => {
-  try {
-    const plants = await controllers.PlantController.getAll();
-    res.json(plants);
-  } catch (error) {
-    console.error('Error fetching plants:', error);
-    res.status(500).json({ success: false, message: 'Error fetching plants' });
-  }
-});
-
-// Add new plant
-app.post('/api/plants', async (req, res) => {
-  try {
-    const plantData = req.body;
-    const newPlant = await controllers.PlantController.create(plantData);
-    res.status(201).json({ success: true, plant: newPlant });
-  } catch (error) {
-    console.error('Error creating plant:', error);
-    res.status(500).json({ success: false, message: 'Error creating plant' });
-  }
-});
-
-// Get treatments
-app.get('/api/treatments/:fishId', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const treatments = await controllers.TreatmentController.getAllForFish(fishId);
-    res.json(treatments);
-  } catch (error) {
-    console.error('Error fetching treatments:', error);
-    res.status(500).json({ success: false, message: 'Error fetching treatments' });
-  }
-});
-
-// Add new treatment
-app.post('/api/treatments', async (req, res) => {
-  try {
-    const treatmentData = req.body;
-    const newTreatment = await controllers.TreatmentController.create(treatmentData);
-    res.status(201).json({ success: true, treatment: newTreatment });
-  } catch (error) {
-    console.error('Error creating treatment:', error);
-    res.status(500).json({ success: false, message: 'Error creating treatment' });
-  }
-});
-
-// Get photos
-app.get('/api/photos/:fishId', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const photos = await controllers.PhotoController.getAllForFish(fishId);
-    res.json(photos);
-  } catch (error) {
-    console.error('Error fetching photos:', error);
-    res.status(500).json({ success: false, message: 'Error fetching photos' });
-  }
-});
-
-// Add new photo with file upload
-app.post('/api/photos', upload.single('photo'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
-    
-    const photoData = {
-      ...req.body,
-      url: `/uploads/${req.file.filename}`, 
-      FishProfileId: req.body.fishId || 1 // Default to Volt
-    };
-    
-    // Save to database
-    const newPhoto = await controllers.PhotoController.create(photoData);
-    res.status(201).json({ 
-      success: true, 
-      photo: newPhoto,
-      url: photoData.url
-    });
-  } catch (error) {
-    console.error('Error creating photo:', error);
-    res.status(500).json({ success: false, message: 'Error creating photo' });
-  }
-});
-
-// Get notes
-app.get('/api/notes/:fishId', async (req, res) => {
-  try {
-    const { fishId } = req.params;
-    const notes = await controllers.NoteController.getAllForFish(fishId);
-    res.json(notes);
-  } catch (error) {
-    console.error('Error fetching notes:', error);
-    res.status(500).json({ success: false, message: 'Error fetching notes' });
-  }
-});
-
-// Add new note
-app.post('/api/notes', async (req, res) => {
-  try {
-    const noteData = req.body;
-    const newNote = await controllers.NoteController.create(noteData);
-    res.status(201).json({ success: true, note: newNote });
-  } catch (error) {
-    console.error('Error creating note:', error);
-    res.status(500).json({ success: false, message: 'Error creating note' });
-  }
-});
-
-// Serve the appropriate data for the frontend
-async function getAppData() {
-  try {
-    // Default to fish ID 1 (Volt) for this prototype
-    const fishId = 1;
-    
-    // Get fish profile
-    const fish = await controllers.FishController.getById(fishId);
-    
-    // If fish doesn't exist yet (first run), use default data
-    if (!fish) {
-      return {
-        fishData: {
-          name: 'Volt',
-          species: 'Betta splendens',
-          variant: 'Veiltail',
-          color: 'Red/Blue',
-          age: '~8 months',
-          tank: '3.5 gallon planted',
-          acquisitionDate: 'April 5, 2025',
-          duration: '13 days',  // Default duration 
-          profilePicture: '🐠',
-          isPictureEmoji: true
-        },
-        maintenanceTasks: [],
-        tankLogs: [],
-        notifications: []
-      };
-    }
-    
-    // Format fish data for the frontend
-    
-    // Calculate how long you've had the fish
-    const acquisitionDate = new Date(fish.acquisitionDate);
-    const today = new Date();
-    const diffTime = Math.abs(today - acquisitionDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    let duration = '';
-    const years = Math.floor(diffDays / 365);
-    const months = Math.floor((diffDays % 365) / 30);
-    const days = diffDays % 30;
-    
-    if (years > 0) {
-      duration += `${years} year${years !== 1 ? 's' : ''} `;
-    }
-    if (months > 0) {
-      duration += `${months} month${months !== 1 ? 's' : ''} `;
-    }
-    if (days > 0 || (years === 0 && months === 0)) {
-      duration += `${days} day${days !== 1 ? 's' : ''}`;
-    }
-    
-    const fishData = {
-      id: fish.id,
-      name: fish.name,
-      species: fish.species,
-      variant: fish.variant,
-      color: fish.color,
-      age: fish.age,
-      tank: fish.tank,
-      acquisitionDate: new Date(fish.acquisitionDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      duration: duration.trim(), // How long you've had the fish
-      profilePicture: fish.profilePicture,
-      isPictureEmoji: fish.isPictureEmoji
-    };
-    
-    // Get maintenance tasks and format for frontend
-    const tasks = await controllers.MaintenanceController.getAllForFish(fishId);
-    const maintenanceTasks = tasks.map(task => {
-      // Calculate "due in" days
-      const dueDate = new Date(task.dueDate);
-      const today = new Date();
-      const diffTime = dueDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      let dueIn = diffDays <= 0 ? 'Today' : `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-      
-      // Calculate "last done" days ago
-      const lastDoneDate = new Date(task.lastDone);
-      const lastDoneTime = today - lastDoneDate;
-      const lastDoneDays = Math.floor(lastDoneTime / (1000 * 60 * 60 * 24));
-      
-      let lastDone = lastDoneDays === 0 ? 'Today' : `${lastDoneDays} day${lastDoneDays !== 1 ? 's' : ''} ago`;
-      
-      return {
-        id: task.id,
-        task: task.task,
-        dueIn,
-        recurring: task.recurring,
-        lastDone,
-        notify: task.notify,
-        priority: task.priority
-      };
-    });
-    
-    // Get tank logs
-    const logs = await controllers.TankLogController.getAllForFish(fishId);
-    const tankLogs = logs.map(log => ({
-      id: log.id,
-      date: log.date,
-      ammonia: log.ammonia.toString(),
-      nitrite: log.nitrite.toString(),
-      nitrate: log.nitrate.toString(),
-      ph: log.ph.toString(),
-      temp: log.temp.toString(),
-      notes: log.notes
-    }));
-    
-    // Get notifications
-    const notifications = await controllers.NotificationController.getAllForFish(fishId);
-    
-    // Get plants
-    let plants = [];
-    try {
-      plants = await controllers.PlantController.getAllForFish(fishId);
-    } catch (error) {
-      console.log('No plants data yet, using empty array');
-    }
-    
-    // Get treatments
-    let treatments = [];
-    try {
-      treatments = await controllers.TreatmentController.getAllForFish(fishId);
-    } catch (error) {
-      console.log('No treatments data yet, using empty array');
-    }
-    
-    // Get photos
-    let photos = [];
-    try {
-      photos = await controllers.PhotoController.getAllForFish(fishId);
-    } catch (error) {
-      console.log('No photos data yet, using empty array');
-    }
-    
-    // Get notes
-    let notes = [];
-    try {
-      notes = await controllers.NoteController.getAllForFish(fishId);
-    } catch (error) {
-      console.log('No notes data yet, using empty array');
-    }
-    
-    return {
-      fishData,
-      maintenanceTasks,
-      tankLogs,
-      notifications,
-      plants,
-      treatments,
-      photos,
-      notes
-    };
-  } catch (error) {
-    console.error('Error getting app data:', error);
-    
-    // Return default data in case of error
-    return {
-      fishData: {
-        name: 'Volt',
-        species: 'Betta splendens',
-        variant: 'Veiltail',
-        color: 'Red/Blue',
-        age: '~8 months',
-        tank: '3.5 gallon planted',
-        acquisitionDate: 'April 5, 2025',
-        duration: '13 days',  // Default duration
-        profilePicture: '🐠',
-        isPictureEmoji: true
-      },
-      maintenanceTasks: [],
-      tankLogs: [],
-      notifications: [],
-      plants: [],
-      treatments: [],
-      photos: [],
-      notes: []
-    };
-  }
-}
-
-// Simple Express server to display app information with interactive elements
-app.get('/', async (req, res) => {
-  // Get data from database
-  const appData = await getAppData();
-  
-  // Define profile pictures options for the frontend
-  const clientProfilePictures = JSON.stringify(profilePictures);
-  
-  res.send(`
     <html>
       <head>
         <title>Volt Betta Manager App</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="/js/androidBridge.js"></script>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -1801,34 +1228,31 @@ app.get('/', async (req, res) => {
           <div class="fish-profile">
             <div class="fish-profile-info">
               <div class="fish-avatar" id="fish-avatar-container">
-                ${appData.fishData.isPictureEmoji 
-                  ? appData.fishData.profilePicture 
-                  : `<img src="${appData.fishData.profilePicture}" alt="${appData.fishData.name}" />`
-                }
+                🐠
               </div>
-              <h2>${appData.fishData.name}</h2>
-              <p>${appData.fishData.species} - ${appData.fishData.variant}</p>
+              <h2>Volt</h2>
+              <p>Betta splendens - Veiltail</p>
               
               <div class="fish-stats">
                 <div class="fish-stat">
                   <div class="stat-label">Age</div>
-                  <div class="stat-value">${appData.fishData.age}</div>
+                  <div class="stat-value">~8 months</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Color</div>
-                  <div class="stat-value">${appData.fishData.color}</div>
+                  <div class="stat-value">Red/Blue</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Tank</div>
-                  <div class="stat-value">${appData.fishData.tank}</div>
+                  <div class="stat-value">3.5 gallon planted</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Acquired</div>
-                  <div class="stat-value">${appData.fishData.acquisitionDate}</div>
+                  <div class="stat-value">April 5, 2025</div>
                 </div>
                 <div class="fish-stat">
                   <div class="stat-label">Time with You</div>
-                  <div class="stat-value">${appData.fishData.duration}</div>
+                  <div class="stat-value">13 days</div>
                 </div>
               </div>
             </div>
@@ -1840,37 +1264,51 @@ app.get('/', async (req, res) => {
               <div class="stat-icon">💧</div>
               <div>
                 <div>Last Water Change</div>
-                <div><strong>${appData.maintenanceTasks.find(t => t.task.toLowerCase().includes('water change'))?.lastDone || 'Not recorded'}</strong></div>
+                <div><strong>6 days ago</strong></div>
               </div>
             </div>
             <div class="stat-item">
               <div class="stat-icon">🧪</div>
               <div>
                 <div>Last Water Test</div>
-                <div><strong>${appData.tankLogs.length > 0 ? 
-                  new Date(appData.tankLogs[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 
-                  'Not recorded'}</strong></div>
+                <div><strong>Apr 10</strong></div>
               </div>
             </div>
             <div class="stat-item">
               <div class="stat-icon">📷</div>
               <div>
                 <div>Photos Taken</div>
-                <div><strong>${appData.photos.length} total</strong></div>
+                <div><strong>1 total</strong></div>
               </div>
             </div>
           </div>
           
           <h2>Upcoming Maintenance</h2>
-          ${appData.maintenanceTasks.slice(0, 3).map(task => `
+          
             <div class="maintenance-task">
               <div class="task-info">
-                <div class="task-name">${task.task}</div>
-                <div class="task-due">Due in ${task.dueIn} • ${task.recurring}</div>
+                <div class="task-name">Test Water Parameters</div>
+                <div class="task-due">Due in Today • Weekly</div>
               </div>
               <div class="task-badge">Due soon</div>
             </div>
-          `).join('')}
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Water Change (25%)</div>
+                <div class="task-due">Due in 1 day • Weekly (Tuesday)</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Trim Plants</div>
+                <div class="task-due">Due in 3 days • Bi-weekly</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
           
           <button style="width: 100%; margin-top: 15px;" onclick="showSection('maintenance-section')">View All Tasks</button>
         </section>
@@ -1892,19 +1330,43 @@ app.get('/', async (req, res) => {
             <canvas id="paramsChart"></canvas>
           </div>
           
-          ${appData.tankLogs.map(log => `
+          
             <div class="tank-log-entry">
-              <div class="log-date">${new Date(log.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+              <div class="log-date">Apr 10, 2025</div>
               <div class="log-params">
-                <div class="param"><span class="param-label">Ammonia:</span> ${log.ammonia} ppm</div>
-                <div class="param"><span class="param-label">Nitrite:</span> ${log.nitrite} ppm</div>
-                <div class="param"><span class="param-label">Nitrate:</span> ${log.nitrate} ppm</div>
-                <div class="param"><span class="param-label">pH:</span> ${log.ph}</div>
-                <div class="param"><span class="param-label">Temp:</span> ${log.temp}°F</div>
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 5 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7.2</div>
+                <div class="param"><span class="param-label">Temp:</span> 78°F</div>
               </div>
-              <div class="log-notes">${log.notes}</div>
+              <div class="log-notes">Parameters looking good. Added 1mL of plant fertilizer.</div>
             </div>
-          `).join('')}
+          
+            <div class="tank-log-entry">
+              <div class="log-date">Apr 3, 2025</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 10 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7</div>
+                <div class="param"><span class="param-label">Temp:</span> 79°F</div>
+              </div>
+              <div class="log-notes">Did a 25% water change. Replaced filter media.</div>
+            </div>
+          
+            <div class="tank-log-entry">
+              <div class="log-date">Mar 27, 2025</div>
+              <div class="log-params">
+                <div class="param"><span class="param-label">Ammonia:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrite:</span> 0 ppm</div>
+                <div class="param"><span class="param-label">Nitrate:</span> 15 ppm</div>
+                <div class="param"><span class="param-label">pH:</span> 7.1</div>
+                <div class="param"><span class="param-label">Temp:</span> 78°F</div>
+              </div>
+              <div class="log-notes">Volt seems very active today. Rearranged plants slightly.</div>
+            </div>
+          
           
           <div class="add-button" onclick="showLogForm()">+</div>
         </section>
@@ -1914,15 +1376,47 @@ app.get('/', async (req, res) => {
           <h2>Maintenance Schedule</h2>
           <p>Keep track of recurring tank maintenance tasks.</p>
           
-          ${appData.maintenanceTasks.map(task => `
+          
             <div class="maintenance-task">
               <div class="task-info">
-                <div class="task-name">${task.task}</div>
-                <div class="task-due">Due in ${task.dueIn} • ${task.recurring} • Last done: ${task.lastDone}</div>
+                <div class="task-name">Test Water Parameters</div>
+                <div class="task-due">Due in Today • Weekly • Last done: 7 days ago</div>
               </div>
               <div class="task-badge">Due soon</div>
             </div>
-          `).join('')}
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Water Change (25%)</div>
+                <div class="task-due">Due in 1 day • Weekly (Tuesday) • Last done: 6 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Trim Plants</div>
+                <div class="task-due">Due in 3 days • Bi-weekly • Last done: 11 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Clean Gravel</div>
+                <div class="task-due">Due in 6 days • Bi-weekly • Last done: 8 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
+            <div class="maintenance-task">
+              <div class="task-info">
+                <div class="task-name">Replace Filter Media</div>
+                <div class="task-due">Due in 22 days • Monthly • Last done: 8 days ago</div>
+              </div>
+              <div class="task-badge">Due soon</div>
+            </div>
+          
           
           <div class="add-button" onclick="showTaskForm()">+</div>
         </section>
@@ -1932,16 +1426,7 @@ app.get('/', async (req, res) => {
           <h2>Plant Care</h2>
           <p>Track aquarium plants and their care requirements.</p>
           
-          ${appData.plants && appData.plants.length > 0 ? appData.plants.map(plant => `
-            <div class="tank-log-entry">
-              <div class="log-date">${plant.name}</div>
-              <div class="log-params">
-                <div class="param"><span class="param-label">Species:</span> ${plant.species || 'Not specified'}</div>
-                <div class="param"><span class="param-label">Added:</span> ${new Date(plant.dateAdded).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-              </div>
-              <div class="log-notes">${plant.careInstructions || 'No care instructions provided.'}</div>
-            </div>
-          `).join('') : `<p>No plants added yet. Add your first plant using the + button below.</p>`}
+          <p>No plants added yet. Add your first plant using the + button below.</p>
           
           <div class="add-button" onclick="showPlantForm()">+</div>
         </section>
@@ -1951,61 +1436,12 @@ app.get('/', async (req, res) => {
           <h2>Treatment Plans</h2>
           <p>Track medication, supplements, and treatment plans for your fish.</p>
           
-          ${appData.treatments && appData.treatments.length > 0 ? `
-            <div class="treatments-grid">
-              ${appData.treatments.map(treatment => {
-                // Determine if treatment is active or completed
-                const isActive = !treatment.endDate;
-                const statusClass = isActive ? 'treatment-active' : 'treatment-completed';
-                
-                return `
-                <div class="treatment-card ${statusClass}">
-                  <div class="treatment-status">
-                    ${isActive ? 
-                      '<span class="status-badge active">Active</span>' : 
-                      '<span class="status-badge completed">Completed</span>'
-                    }
-                  </div>
-                  <div class="treatment-header">
-                    <h3>${treatment.name}</h3>
-                    <div class="treatment-condition">For: ${treatment.condition}</div>
-                  </div>
-                  <div class="treatment-details">
-                    <div class="treatment-dates">
-                      <div class="treatment-date">
-                        <span class="date-label">Started:</span>
-                        <span class="date-value">${new Date(treatment.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                      </div>
-                      ${treatment.endDate ? `
-                        <div class="treatment-date">
-                          <span class="date-label">Ended:</span>
-                          <span class="date-value">${new Date(treatment.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                        </div>
-                      ` : ''}
-                    </div>
-                    ${treatment.dosage ? `
-                      <div class="treatment-dosage">
-                        <span class="dosage-label">Dosage:</span>
-                        <span class="dosage-value">${treatment.dosage}</span>
-                      </div>
-                    ` : ''}
-                    ${treatment.notes ? `
-                      <div class="treatment-notes">
-                        <div class="notes-label">Notes:</div>
-                        <div class="notes-content">${treatment.notes}</div>
-                      </div>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-              }).join('')}
-            </div>
-          ` : `
+          
             <div class="empty-state">
               <div class="empty-icon">💊</div>
               <p>No treatments added yet. Add your first treatment using the + button below.</p>
             </div>
-          `}
+          
           
           <div class="add-button" onclick="showTreatmentForm()">+</div>
         </section>
@@ -2015,27 +1451,22 @@ app.get('/', async (req, res) => {
           <h2>Photo Gallery</h2>
           <p>Capture and save memories of your betta fish.</p>
           
-          ${appData.photos && appData.photos.length > 0 ? `
+          
             <div class="gallery-grid">
-              ${appData.photos.map(photo => `
+              
                 <div class="gallery-item">
                   <div class="gallery-image">
-                    <img src="${photo.url}" alt="${photo.title}">
+                    <img src="/uploads/photo-1744814105817-16362021.png" alt="test">
                   </div>
                   <div class="gallery-info">
-                    <div class="gallery-title">${photo.title}</div>
-                    <div class="gallery-date">${new Date(photo.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                    <div class="gallery-notes">${photo.description || ''}</div>
+                    <div class="gallery-title">test</div>
+                    <div class="gallery-date">Apr 16, 2025</div>
+                    <div class="gallery-notes">hro</div>
                   </div>
                 </div>
-              `).join('')}
+              
             </div>
-          ` : `
-            <div class="empty-state">
-              <div class="empty-icon">📷</div>
-              <p>No photos added yet. Add your first photo using the + button below.</p>
-            </div>
-          `}
+          
           
           <div class="add-button" onclick="showPhotoForm()">+</div>
         </section>
@@ -2045,26 +1476,12 @@ app.get('/', async (req, res) => {
           <h2>Notes</h2>
           <p>Record observations and important information about your betta.</p>
           
-          ${appData.notes && appData.notes.length > 0 ? `
-            <div class="notes-grid">
-              ${appData.notes.map(note => `
-                <div class="note-card">
-                  <div class="note-header">
-                    <h3>${note.title}</h3>
-                    <div class="note-date">${new Date(note.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                  </div>
-                  <div class="note-content">
-                    <p>${note.content}</p>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : `
+          
             <div class="empty-state">
               <div class="empty-icon">📝</div>
               <p>No notes added yet. Add your first note using the + button below.</p>
             </div>
-          `}
+          
           
           <div class="add-button" onclick="showNoteForm()">+</div>
         </section>
@@ -2159,14 +1576,14 @@ app.get('/', async (req, res) => {
           }
           
           // Initialize profile pictures array from server
-          const profilePictures = ${clientProfilePictures};
+          const profilePictures = [{"id":1,"name":"Volt Default","url":"🐠","isEmoji":true},{"id":2,"name":"Betta Red","url":"🐟","isEmoji":true},{"id":3,"name":"Betta Blue","url":"🐡","isEmoji":true},{"id":4,"name":"Custom Upload","url":"","isEmoji":false}];
           
           // Initialize variables for profile management
           let currentProfilePic = {
             id: 1,
-            url: '${appData.fishData.profilePicture}',
+            url: '🐠',
             name: 'Current Profile', 
-            isEmoji: ${appData.fishData.isPictureEmoji}
+            isEmoji: true
           };
           
           // Initialize the profile picture picker
@@ -2787,7 +2204,7 @@ app.get('/', async (req, res) => {
             const ctx = document.getElementById('paramsChart').getContext('2d');
             
             // Get water parameter data from tank logs
-            const tankLogs = ${JSON.stringify(appData.tankLogs || [])};
+            const tankLogs = [{"id":1,"date":"2025-04-10","ammonia":"0","nitrite":"0","nitrate":"5","ph":"7.2","temp":"78","notes":"Parameters looking good. Added 1mL of plant fertilizer."},{"id":2,"date":"2025-04-03","ammonia":"0","nitrite":"0","nitrate":"10","ph":"7","temp":"79","notes":"Did a 25% water change. Replaced filter media."},{"id":3,"date":"2025-03-27","ammonia":"0","nitrite":"0","nitrate":"15","ph":"7.1","temp":"78","notes":"Volt seems very active today. Rearranged plants slightly."}];
             
             // Sort logs by date (oldest to newest)
             tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2838,7 +2255,7 @@ app.get('/', async (req, res) => {
           // Handle parameter button clicks
           function setupParamButtons() {
             const buttons = document.querySelectorAll('.parameter-button');
-            const tankLogs = ${JSON.stringify(appData.tankLogs || [])};
+            const tankLogs = [{"id":1,"date":"2025-04-10","ammonia":"0","nitrite":"0","nitrate":"5","ph":"7.2","temp":"78","notes":"Parameters looking good. Added 1mL of plant fertilizer."},{"id":2,"date":"2025-04-03","ammonia":"0","nitrite":"0","nitrate":"10","ph":"7","temp":"79","notes":"Did a 25% water change. Replaced filter media."},{"id":3,"date":"2025-03-27","ammonia":"0","nitrite":"0","nitrate":"15","ph":"7.1","temp":"78","notes":"Volt seems very active today. Rearranged plants slightly."}];
             
             // Sort logs by date (oldest to newest)
             tankLogs.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2926,43 +2343,7 @@ app.get('/', async (req, res) => {
               });
             });
           });
-          
-          // Check if running inside the Android app
-          document.addEventListener('DOMContentLoaded', function() {
-            // If running in Android app, customize UI
-            if (typeof AndroidBridge !== 'undefined' && AndroidBridge.isRunningInAndroid()) {
-              console.log('Running in Android WebView app!');
-              
-              // Let Android know we've loaded successfully
-              AndroidBridge.showToast('Volt Betta Manager loaded successfully');
-              
-              // Add app version indicator
-              const deviceInfo = AndroidBridge.getDeviceInfo();
-              const versionElement = document.createElement('div');
-              versionElement.classList.add('device-info');
-              versionElement.textContent = 'Running on ' + deviceInfo;
-              versionElement.style.position = 'fixed';
-              versionElement.style.bottom = '5px';
-              versionElement.style.left = '5px';
-              versionElement.style.fontSize = '10px';
-              versionElement.style.color = '#666';
-              document.body.appendChild(versionElement);
-              
-              // Handle external links properly in Android
-              document.querySelectorAll('a[target="_blank"]').forEach(link => {
-                link.addEventListener('click', function(e) {
-                  e.preventDefault();
-                  AndroidBridge.openExternalLink(this.href);
-                });
-              });
-            }
-          });
         </script>
       </body>
     </html>
-  `);
-});
-
-app.listen(port, () => {
-  console.log(`Volt Betta Manager prototype running at http://localhost:${port}`);
-});
+  

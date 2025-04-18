@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Volt Betta Manager</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f8ff;
+            color: #333;
+        }
+        .container {
+            max-width: 100%;
+            padding: 15px;
+        }
+        header {
+            background-color: #4a89dc;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .button {
+            background-color: #4a89dc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #4a89dc;
+        }
+        .offline-message {
+            background-color: #ffe0e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Volt Betta Manager</h1>
+    </header>
+    
+    <div class="container">
+        <div class="offline-message">
+            <h3>You're currently in offline mode</h3>
+            <p>Connect to the internet to access all features.</p>
+        </div>
+        
+        <div class="content">
+            <h2>Volt's Dashboard</h2>
+            <div class="section">
+                <h3>Fish Profile</h3>
+                <p>Name: Volt</p>
+                <p>Species: Betta splendens</p>
+                <p>Color: Blue</p>
+                <p>Acquired: [Offline]</p>
+                <p>Time with you: [Offline]</p>
+            </div>
+            
+            <div class="section">
+                <h3>Recent Tank Parameters</h3>
+                <p>pH: [Offline]</p>
+                <p>Temperature: [Offline]</p>
+                <p>Ammonia: [Offline]</p>
+                <p>Nitrites: [Offline]</p>
+                <p>Nitrates: [Offline]</p>
+            </div>
+            
+            <button class="button">Connect to Server</button>
+            <button class="button">View Cached Photos</button>
+            <button class="button">View Maintenance History</button>
+        </div>
+    </div>
+    
+    <script>
+        // Script to attempt reconnection
+        document.querySelectorAll('.button').forEach(button => {
+            button.addEventListener('click', function() {
+                alert('This feature requires internet connection. Please connect to access all features.');
+            });
+        });
+    </script>
+</body>
+</html>
