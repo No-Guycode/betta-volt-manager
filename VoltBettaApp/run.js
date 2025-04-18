@@ -396,6 +396,7 @@ async function getAppData() {
           age: '~8 months',
           tank: '3.5 gallon planted',
           acquisitionDate: 'April 5, 2025',
+          duration: '13 days',  // Default duration 
           profilePicture: '🐠',
           isPictureEmoji: true
         },
@@ -406,6 +407,28 @@ async function getAppData() {
     }
     
     // Format fish data for the frontend
+    
+    // Calculate how long you've had the fish
+    const acquisitionDate = new Date(fish.acquisitionDate);
+    const today = new Date();
+    const diffTime = Math.abs(today - acquisitionDate);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    let duration = '';
+    const years = Math.floor(diffDays / 365);
+    const months = Math.floor((diffDays % 365) / 30);
+    const days = diffDays % 30;
+    
+    if (years > 0) {
+      duration += `${years} year${years !== 1 ? 's' : ''} `;
+    }
+    if (months > 0) {
+      duration += `${months} month${months !== 1 ? 's' : ''} `;
+    }
+    if (days > 0 || (years === 0 && months === 0)) {
+      duration += `${days} day${days !== 1 ? 's' : ''}`;
+    }
+    
     const fishData = {
       id: fish.id,
       name: fish.name,
@@ -419,6 +442,7 @@ async function getAppData() {
         month: 'long',
         day: 'numeric'
       }),
+      duration: duration.trim(), // How long you've had the fish
       profilePicture: fish.profilePicture,
       isPictureEmoji: fish.isPictureEmoji
     };
@@ -523,6 +547,7 @@ async function getAppData() {
         age: '~8 months',
         tank: '3.5 gallon planted',
         acquisitionDate: 'April 5, 2025',
+        duration: '13 days',  // Default duration
         profilePicture: '🐠',
         isPictureEmoji: true
       },
@@ -1717,6 +1742,10 @@ app.get('/', async (req, res) => {
                 <div class="fish-stat">
                   <div class="stat-label">Acquired</div>
                   <div class="stat-value">${appData.fishData.acquisitionDate}</div>
+                </div>
+                <div class="fish-stat">
+                  <div class="stat-label">Time with You</div>
+                  <div class="stat-value">${appData.fishData.duration}</div>
                 </div>
               </div>
             </div>
