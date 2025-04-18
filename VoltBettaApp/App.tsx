@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView, StyleSheet, StatusBar, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider, DefaultTheme, Appbar } from 'react-native-paper';

@@ -101,7 +101,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd VoltBettaApp && npm install && npx expo install expo-dev-client && npx eas build -p android --profile preview --local"
+args = "cd VoltBettaApp && npm install && npx expo install expo-dev-client && ANDROID_HOME=/nix/store/*android-sdk*/libexec/android-sdk npx eas build -p android --profile preview --local"
 
 [[workflows.workflow]]
 name = "Clean Windows Files"

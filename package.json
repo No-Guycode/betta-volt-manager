@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/cli-server-api": "^13.6.9",
     "better-sqlite3": "^11.9.1",
     "eas-cli": "^16.3.1",
@@ -19,6 +20,7 @@
     "jdk": "^0.0.0",
     "multer": "^1.4.5-lts.2",
     "react-native": "^0.79.1",
+    "react-native-safe-area-context": "^5.4.0",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"
   }
