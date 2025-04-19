@@ -19,7 +19,22 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "local": {
+      "android": {
+        "buildType": "apk",
+        "distribution": "internal",
+        "withoutCredentials": true
+      }
     }
   }
 }
