@@ -4,7 +4,7 @@ modules = ["dotnet", "nodejs-20"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Project"
+runButton = "Run VoltBetta Web"
 
 [[workflows.workflow]]
 name = "Project"
@@ -135,6 +135,15 @@ args = "find . -name \"*.vcxproj\" -type f -delete"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "find . -name \"*.dll\" -type f -delete"
+
+[[workflows.workflow]]
+name = "Run VoltBetta Web"
+author = 41663999
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd VoltBettaApp && node run.js"
 
 [deployment]
 run = ["sh", "-c", "dotnet run"]
